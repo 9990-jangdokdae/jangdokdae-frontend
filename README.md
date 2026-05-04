@@ -66,4 +66,4 @@ npm run build
 ## 문서
 
 - `docs/DESIGN.md`: 장독대 프론트엔드 디자인 가이드
-- `docs/frontend-data-contract.md`: 프론트엔드와 백엔드 사이의 데이터 계약 초안
+- `docs/API_SPEC.md`: 페이지별 API 명세서
