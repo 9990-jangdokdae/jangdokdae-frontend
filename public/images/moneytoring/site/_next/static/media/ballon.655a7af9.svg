@@ -1,0 +1,20 @@
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+      >
+        <!-- 말풍선 꼬리 채우기 -->
+        <path
+          d="M1.08894 1.70711C0.458978 1.07714 0.905145 0 1.79605 0H11.3818V12L1.08894 1.70711Z"
+          fill="white"
+        />
+        <!-- 대각선 외곽선(끝 둥글게) -->
+        <path
+          d="M1.08894 1.70711L11.3818 12"
+          stroke="#E3E8E7"
+          stroke-width="1"
+          stroke-linecap="round"
+        />
+      </svg>
