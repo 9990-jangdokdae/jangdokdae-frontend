@@ -194,6 +194,26 @@ export function MarketVoiceDetailClient() {
   const params = useParams<{ id: string }>();
   const issue = getIssueById(params.id);
   const [sheetTerm, setSheetTerm] = useState<JuriniTerm | null>(null);
+
+  if (!issue) {
+    return (
+      <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
+        <Header />
+        <InterestRail />
+        <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
+          <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
+            <p className="text-[13px] font-semibold text-[#c96442]">이슈를 찾을 수 없습니다</p>
+            <h1 className="ko-title mt-3 text-[30px] font-semibold leading-[1.25] text-[#1d1d1f]">요청한 뉴스 ID에 해당하는 독해가 없어요.</h1>
+            <p className="ko-body mt-3 text-[15px] leading-6 text-[#7a7a7a]">현재 상세 URL은 백엔드의 news_id를 기준으로 연결됩니다.</p>
+            <Link className="mt-6 inline-flex h-10 items-center rounded-lg bg-[#1d1d1f] px-4 text-[14px] font-semibold text-white" href="/mv">
+              이슈 목록으로 이동
+            </Link>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   const highlightIndex = issue.translation.highlightExplanationIndex;
   const tags = uniqueTags([...issue.sectors, ...issue.companies, ...issue.keywords]);
 

@@ -32,6 +32,41 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export interface BackendTerm {
+  term: string;
+  explanation: string;
+}
+
+export interface BackendJuriniTranslation {
+  title: string;
+  explanation: string[];
+  highlight_explanation_index: number | null;
+  terms: BackendTerm[];
+}
+
+export interface BackendQuizQuestion {
+  quiz_id: string;
+  kind: QuizKind;
+  question: string;
+  options: string[];
+  answer_index: number;
+  explanation: string;
+}
+
+export interface BackendIssueReading {
+  news_id: number | string;
+  issue_id: number | string | null;
+  news_title: string;
+  collected_at: string;
+  published_at: string;
+  source_name: string;
+  sector: string[];
+  company: string[];
+  keyword: string[];
+  jurini_translation: BackendJuriniTranslation;
+  quizzes: BackendQuizQuestion[];
+}
+
 export interface IssueSource {
   name: string;
   publishedAt: string;
