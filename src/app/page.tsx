@@ -1,37 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronLeft, ChevronRight, Clock3, Search, Star, X } from "lucide-react";
 import {
   companyOptions,
-  defaultInterestProfile,
-  interestStorageKey,
+  ONBOARDING_INITIAL_PROFILE,
   issues,
   matchesInterest,
-  onboardingStorageKey,
   sectorOptions,
 } from "@/lib/jangdokdae-data";
-import type { InterestOption, InterestProfile, Issue } from "@/types/jangdokdae";
-
-const demoAuthStorageKey = "jangdokdae.demo-auth.v1";
-
-function readStoredProfile(): InterestProfile {
-  if (typeof window === "undefined") return defaultInterestProfile;
-
-  const stored = window.localStorage.getItem(interestStorageKey);
-  if (!stored) return defaultInterestProfile;
-
-  try {
-    const parsed = JSON.parse(stored) as Partial<InterestProfile>;
-    return {
-      sectors: Array.isArray(parsed.sectors) ? parsed.sectors : defaultInterestProfile.sectors,
-      companies: Array.isArray(parsed.companies) ? parsed.companies : defaultInterestProfile.companies,
-    };
-  } catch {
-    return defaultInterestProfile;
-  }
-}
+import type { InterestProfile, Issue, User } from "@/types/jangdokdae";
+import { toggleItem } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useInterestProfile } from "@/hooks/useInterestProfile";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { LogoutConfirmModal } from "@/app/auth/LogoutConfirmModal";
+import { OnboardingModal } from "@/app/onboarding/OnboardingModal";
+import { BrandMark } from "@/components/ui/BrandMark";
+import { OptionGrid } from "@/components/ui/OptionGrid";
 
 function formatCollectedAt(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -44,33 +31,23 @@ function formatCollectedAt(value: string) {
   }).format(new Date(value));
 }
 
-function toggleItem(items: string[], item: string) {
-  if (items.includes(item)) return items.filter((value) => value !== item);
-  return [...items, item];
-}
-
-function BrandMark({ inverse = false }: { inverse?: boolean }) {
-  return (
-    <Link href="/" className="flex items-center gap-3" aria-label="장독대 홈">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-[#c96442] text-[20px] font-semibold text-white">장</span>
-      <span className="leading-none">
-        <span className={`block text-[20px] font-semibold ${inverse ? "text-[#ffffff]" : "text-[#1d1d1f]"}`}>장독대</span>
-        <span className={`mt-1 block text-[11px] font-medium ${inverse ? "text-[#cccccc]" : "text-[#7a7a7a]"}`}>시장 독해를 대신 해드립니다</span>
-      </span>
-    </Link>
-  );
-}
-
 function Header({
   isLoggedIn,
+  isLoading,
+  user,
   onOpenLogin,
   onLogout,
 }: {
   isLoggedIn: boolean;
+  isLoading: boolean;
+  user: User | null;
   onOpenLogin: () => void;
   onLogout: () => void;
 }) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   return (
+    <>
     <header className="sticky top-0 z-40 h-[64px] border-b border-[#e0e0e0] bg-[#ffffff]/95 backdrop-blur">
       <div className="flex h-full items-center px-8">
         <BrandMark />
@@ -90,17 +67,20 @@ function Header({
           이슈, 종목, 용어 검색
         </button>
         <Bell className="ml-auto h-5 w-5 text-[#7a7a7a]" />
-        {isLoggedIn ? (
+        {isLoading ? (
+          // 인증 상태 확인 중: 로그인/로그아웃 버튼이 깜빡이지 않도록 스켈레톤 표시
+          <div className="ml-7 h-10 w-28 animate-pulse rounded-lg bg-[#f0f0f0]" />
+        ) : isLoggedIn ? (
           <div className="ml-7 flex items-center gap-2">
             <button
               className="h-10 rounded-lg border border-[#e0e0e0] bg-white px-4 text-[14px] font-semibold text-[#1d1d1f]"
               type="button"
             >
-              데모 사용자
+              {user?.nickname ?? "사용자"}
             </button>
             <button
-              className="h-10 rounded-lg bg-[#1d1d1f] px-4 text-[14px] font-semibold text-white transition hover:bg-[#333333]"
-              onClick={onLogout}
+              className="h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white transition hover:bg-[#b65335]"
+              onClick={() => setShowLogoutConfirm(true)}
               type="button"
             >
               로그아웃
@@ -117,11 +97,20 @@ function Header({
         )}
       </div>
     </header>
+    {showLogoutConfirm && (
+      <LogoutConfirmModal
+        onConfirm={() => { setShowLogoutConfirm(false); onLogout(); }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
+    )}
+    </>
   );
 }
 
-function Rail({ onOpenInterests }: { onOpenInterests: () => void }) {
+function Rail({ isLoggedIn, onOpenInterests }: { isLoggedIn: boolean; onOpenInterests: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
+
+  if (!isLoggedIn) return null;
 
   return (
     <>
@@ -149,36 +138,6 @@ function Rail({ onOpenInterests }: { onOpenInterests: () => void }) {
           </button>
       </aside>
     </>
-  );
-}
-
-function OptionGrid({
-  options,
-  selected,
-  onToggle,
-}: {
-  options: InterestOption[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {options.map((option) => {
-        const active = selected.includes(option.id);
-        return (
-          <button
-            key={option.id}
-            className={`min-h-[82px] rounded-lg border p-4 text-left transition ${
-              active ? "border-[#c96442] bg-[#fff1ec] shadow-[0_0_0_1px_#c96442]" : "border-[#e0e0e0] bg-white hover:border-[#c96442]/60"
-            }`}
-            onClick={() => onToggle(option.id)}
-          >
-            <span className="block text-[15px] font-semibold text-[#1d1d1f]">{option.label}</span>
-            {option.description && <span className="mt-2 block text-[13px] leading-5 text-[#7a7a7a]">{option.description}</span>}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -214,171 +173,6 @@ function InterestEditor({
   );
 }
 
-function Onboarding({
-  profile,
-  onChange,
-  onComplete,
-}: {
-  profile: InterestProfile;
-  onChange: (profile: InterestProfile) => void;
-  onComplete: () => void;
-}) {
-  const [step, setStep] = useState<1 | 2>(1);
-  const canContinue = step === 1 ? profile.sectors.length > 0 : profile.sectors.length > 0;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000]/45 px-6">
-      <section className="grid max-h-[88vh] w-[920px] grid-cols-[310px_1fr] overflow-hidden rounded-xl bg-[#ffffff] shadow-[0_24px_80px_rgba(20,20,19,0.22)]">
-        <div className="bg-[#000000] p-8 text-[#ffffff]">
-          <BrandMark inverse />
-          <div className="mt-16">
-            <p className="text-[13px] font-semibold text-[#cccccc]">첫 로그인 온보딩</p>
-            <h1 className="mt-4 text-[36px] font-normal leading-[1.12]">오늘 읽을 시장을 먼저 골라볼까요.</h1>
-            <p className="mt-5 text-[15px] leading-6 text-[#cccccc]">장독대는 선택한 관심사와 가까운 이슈를 먼저 꺼내두고, 어려운 뉴스를 쉬운 말과 퀴즈로 바꿔 보여줍니다.</p>
-          </div>
-          <div className="mt-16 flex gap-2">
-            <span className={`h-2 flex-1 rounded-full ${step === 1 ? "bg-[#c96442]" : "bg-[#333333]"}`} />
-            <span className={`h-2 flex-1 rounded-full ${step === 2 ? "bg-[#c96442]" : "bg-[#333333]"}`} />
-          </div>
-        </div>
-
-        <div className="overflow-y-auto p-8">
-          <p className="text-[13px] font-semibold text-[#c96442]">{step} / 2</p>
-          <h2 className="mt-2 text-[28px] font-semibold text-[#1d1d1f]">{step === 1 ? "관심 섹터를 선택하세요" : "관심 종목을 선택하세요"}</h2>
-          <p className="mt-3 text-[15px] leading-6 text-[#7a7a7a]">
-            {step === 1 ? "넓은 관심사를 먼저 고르면 내 관심 이슈의 기준이 됩니다." : "아는 종목만 골라도 충분합니다. 나중에 우측 내 관심에서 바꿀 수 있어요."}
-          </p>
-
-          <div className="mt-7">
-            {step === 1 ? (
-              <OptionGrid
-                options={sectorOptions}
-                selected={profile.sectors}
-                onToggle={(sector) => onChange({ ...profile, sectors: toggleItem(profile.sectors, sector) })}
-              />
-            ) : (
-              <OptionGrid
-                options={companyOptions}
-                selected={profile.companies}
-                onToggle={(company) => onChange({ ...profile, companies: toggleItem(profile.companies, company) })}
-              />
-            )}
-          </div>
-
-          <div className="mt-8 flex justify-between">
-            <button className="h-10 rounded-lg px-4 text-[14px] font-semibold text-[#7a7a7a] hover:bg-[#fbfcfd]" onClick={() => setStep(1)} disabled={step === 1}>
-              이전
-            </button>
-            {step === 1 ? (
-              <button className="h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white disabled:bg-[#e0e0e0] disabled:text-[#7a7a7a]" disabled={!canContinue} onClick={() => setStep(2)}>
-                다음
-              </button>
-            ) : (
-              <button className="h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white disabled:bg-[#e0e0e0] disabled:text-[#7a7a7a]" disabled={!canContinue} onClick={onComplete}>
-                장독대 시작하기
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function LoginModal({
-  onClose,
-  onLogin,
-}: {
-  onClose: () => void;
-  onLogin: () => void;
-}) {
-  const [email, setEmail] = useState("demo@jangdokdae.ai");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const submitLogin = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setNotice("");
-
-    if (!email.includes("@")) {
-      setError("이메일 형식으로 입력해주세요.");
-      return;
-    }
-
-    if (!password.trim()) {
-      setError("비밀번호를 입력해주세요.");
-      return;
-    }
-
-    setError("");
-    onLogin();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000]/45 px-6" onClick={onClose}>
-      <section
-        className="w-[460px] rounded-xl bg-[#ffffff] p-7 shadow-[0_24px_80px_rgba(20,20,19,0.22)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[13px] font-semibold text-[#c96442]">데모 로그인</p>
-            <h2 className="mt-2 text-[28px] font-semibold text-[#1d1d1f]">장독대 시작하기</h2>
-            <p className="mt-3 text-[14px] leading-6 text-[#7a7a7a]">로그인하면 관심사 선택 온보딩을 바로 확인할 수 있어요.</p>
-          </div>
-          <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#fbfcfd]" aria-label="로그인 닫기" onClick={onClose} type="button">
-            <X className="h-5 w-5 text-[#7a7a7a]" />
-          </button>
-        </div>
-
-        <form className="mt-7 space-y-4" onSubmit={submitLogin}>
-          <label className="block">
-            <span className="mb-2 block text-[13px] font-semibold text-[#1d1d1f]">이메일</span>
-            <input
-              className="h-12 w-full rounded-lg border border-[#e0e0e0] bg-white px-4 text-[15px] text-[#1d1d1f] outline-none transition focus:border-[#c96442] focus:ring-2 focus:ring-[#c96442]/15"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="demo@jangdokdae.ai"
-              type="email"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-2 block text-[13px] font-semibold text-[#1d1d1f]">비밀번호</span>
-            <input
-              className="h-12 w-full rounded-lg border border-[#e0e0e0] bg-white px-4 text-[15px] text-[#1d1d1f] outline-none transition focus:border-[#c96442] focus:ring-2 focus:ring-[#c96442]/15"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="비밀번호"
-              type="password"
-            />
-          </label>
-
-          {error && <p className="rounded-lg bg-[#fff1ec] px-4 py-3 text-[13px] font-semibold text-[#b65335]">{error}</p>}
-          {notice && <p className="rounded-lg bg-[#fbfcfd] px-4 py-3 text-[13px] font-semibold text-[#7a7a7a]">{notice}</p>}
-
-          <button className="h-12 w-full rounded-lg bg-[#c96442] text-[15px] font-semibold text-white transition hover:bg-[#b65335]" type="submit">
-            로그인
-          </button>
-        </form>
-
-        <div className="mt-5 flex justify-center gap-2 text-[13px] text-[#7a7a7a]">
-          <span>처음이신가요?</span>
-          <button
-            className="font-semibold text-[#c96442] hover:text-[#b65335]"
-            onClick={() => {
-              setError("");
-              setNotice("데모에서는 로그인으로 바로 체험할 수 있어요.");
-            }}
-            type="button"
-          >
-            회원가입
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 function InterestDrawer({
   profile,
@@ -389,6 +183,8 @@ function InterestDrawer({
   onChange: (profile: InterestProfile) => void;
   onClose: () => void;
 }) {
+  useLockBodyScroll();
+
   return (
     <div className="fixed inset-0 z-50 bg-[#000000]/25" onClick={onClose}>
       <aside className="ml-auto h-full w-[460px] overflow-y-auto bg-[#ffffff] p-7 shadow-[-18px_0_50px_rgba(20,20,19,0.16)]" onClick={(event) => event.stopPropagation()}>
@@ -459,55 +255,53 @@ function IssueSection({ title, description, items, empty }: { title: string; des
 }
 
 export default function Home() {
+  const { user, isLoggedIn, isLoading: authLoading, openLoginModal, logout } = useAuth();
+  const { profile, saveProfile, isLoading: profileLoading } = useInterestProfile();
+
   const [hydrated, setHydrated] = useState(false);
-  const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
+  // 온보딩 중 임시 선택 상태 (완료 전까지 서버에 저장하지 않음)
+  const [draftProfile, setDraftProfile] = useState<InterestProfile>(ONBOARDING_INITIAL_PROFILE);
 
+  // hydration 완료 표시: useEffect는 클라이언트에서만 실행되므로 직접 설정
   useEffect(() => {
-    window.queueMicrotask(() => {
-      const storedProfile = readStoredProfile();
-      const loggedIn = window.localStorage.getItem(demoAuthStorageKey) === "true";
-      setProfile(storedProfile);
-      setIsLoggedIn(loggedIn);
-      setShowOnboarding(false);
-      setHydrated(true);
-    });
+    setHydrated(true);
   }, []);
 
+  // 온보딩 표시: 로그인 상태이고 서버 프로필이 비어있으면 온보딩 시작
+  // prevLoggedIn 방식은 OAuth 리다이렉트(페이지 새로고침) 후 prev가 null이 되어 동작하지 않음.
+  // hasCheckedOnboarding ref로 마운트 후 최초 1회만 검사한다.
+  const hasCheckedOnboarding = useRef(false);
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(interestStorageKey, JSON.stringify(profile));
-  }, [hydrated, profile]);
+    if (!hydrated || profileLoading || !isLoggedIn) return;
+    if (hasCheckedOnboarding.current) return;
+
+    hasCheckedOnboarding.current = true;
+    const isEmpty = profile.sectors.length === 0 && profile.companies.length === 0;
+    if (isEmpty) {
+      setDraftProfile(ONBOARDING_INITIAL_PROFILE);
+      setShowOnboarding(true);
+    }
+  }, [isLoggedIn, hydrated, profileLoading, profile]);
 
   const personalizedIssues = useMemo(() => issues.filter((issue) => matchesInterest(issue, profile)), [profile]);
-  const handleDemoLogin = () => {
-    window.localStorage.setItem(demoAuthStorageKey, "true");
-    window.localStorage.removeItem(onboardingStorageKey);
-    setIsLoggedIn(true);
-    setShowLogin(false);
-    setShowOnboarding(true);
-  };
 
-  const handleLogout = () => {
-    window.localStorage.removeItem(demoAuthStorageKey);
-    window.localStorage.removeItem(onboardingStorageKey);
-    setIsLoggedIn(false);
-    setShowLogin(false);
-    setShowOnboarding(false);
-  };
-
-  const completeOnboarding = () => {
-    window.localStorage.setItem(onboardingStorageKey, "true");
-    setShowOnboarding(false);
+  // 온보딩 완료: draft를 서버·localStorage에 저장.
+  // saveProfile 실패 시 모달을 닫지 않고 사용자에게 알린다.
+  const completeOnboarding = async () => {
+    try {
+      await saveProfile(draftProfile);
+      setShowOnboarding(false);
+    } catch {
+      alert("프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <Header isLoggedIn={isLoggedIn} onOpenLogin={() => setShowLogin(true)} onLogout={handleLogout} />
-      <Rail onOpenInterests={() => setShowInterests(true)} />
+      <Header isLoggedIn={isLoggedIn} isLoading={authLoading} user={user} onOpenLogin={openLoginModal} onLogout={logout} />
+      <Rail isLoggedIn={isLoggedIn} onOpenInterests={() => setShowInterests(true)} />
 
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-24 pt-8">
         <section className="border-b border-[#e0e0e0] pb-10">
@@ -538,9 +332,8 @@ export default function Home() {
         <p className="mt-2">제공되는 정보는 학습과 시장 이해를 위한 콘텐츠이며, 특정 종목의 매수 또는 매도 권유가 아닙니다.</p>
       </footer>
 
-      {hydrated && showOnboarding && <Onboarding profile={profile} onChange={setProfile} onComplete={completeOnboarding} />}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={handleDemoLogin} />}
-      {showInterests && <InterestDrawer profile={profile} onChange={setProfile} onClose={() => setShowInterests(false)} />}
+      {hydrated && showOnboarding && <OnboardingModal profile={draftProfile} onChange={setDraftProfile} onComplete={completeOnboarding} />}
+      {showInterests && <InterestDrawer profile={profile} onChange={saveProfile} onClose={() => setShowInterests(false)} />}
     </div>
   );
 }

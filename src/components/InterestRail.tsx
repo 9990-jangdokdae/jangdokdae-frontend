@@ -1,62 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Star, X } from "lucide-react";
-import { companyOptions, defaultInterestProfile, interestStorageKey, sectorOptions } from "@/lib/jangdokdae-data";
-import type { InterestOption, InterestProfile } from "@/types/jangdokdae";
-
-function readStoredProfile(): InterestProfile {
-  if (typeof window === "undefined") return defaultInterestProfile;
-
-  const stored = window.localStorage.getItem(interestStorageKey);
-  if (!stored) return defaultInterestProfile;
-
-  try {
-    const parsed = JSON.parse(stored) as Partial<InterestProfile>;
-    return {
-      sectors: Array.isArray(parsed.sectors) ? parsed.sectors : defaultInterestProfile.sectors,
-      companies: Array.isArray(parsed.companies) ? parsed.companies : defaultInterestProfile.companies,
-    };
-  } catch {
-    return defaultInterestProfile;
-  }
-}
-
-function toggleItem(items: string[], item: string) {
-  if (items.includes(item)) return items.filter((value) => value !== item);
-  return [...items, item];
-}
-
-function OptionGrid({
-  options,
-  selected,
-  onToggle,
-}: {
-  options: InterestOption[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {options.map((option) => {
-        const active = selected.includes(option.id);
-        return (
-          <button
-            key={option.id}
-            className={`min-h-[82px] rounded-lg border p-4 text-left transition ${
-              active ? "border-[#c96442] bg-[#fff1ec] shadow-[0_0_0_1px_#c96442]" : "border-[#e0e0e0] bg-white hover:border-[#c96442]/60"
-            }`}
-            onClick={() => onToggle(option.id)}
-            type="button"
-          >
-            <span className="block text-[15px] font-semibold text-[#1d1d1f]">{option.label}</span>
-            {option.description && <span className="mt-2 block text-[13px] leading-5 text-[#7a7a7a]">{option.description}</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+import { companyOptions, sectorOptions } from "@/lib/jangdokdae-data";
+import type { InterestProfile } from "@/types/jangdokdae";
+import { toggleItem } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useInterestProfile } from "@/hooks/useInterestProfile";
+import { OptionGrid } from "@/components/ui/OptionGrid";
 
 function InterestEditor({
   profile,
@@ -118,22 +69,12 @@ function InterestDrawer({
 }
 
 export function InterestRail() {
-  const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
-  const [hydrated, setHydrated] = useState(false);
+  const { isLoggedIn } = useAuth();
+  const { profile, saveProfile } = useInterestProfile();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
-    window.queueMicrotask(() => {
-      setProfile(readStoredProfile());
-      setHydrated(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(interestStorageKey, JSON.stringify(profile));
-  }, [hydrated, profile]);
+  if (!isLoggedIn) return null;
 
   return (
     <>
@@ -160,7 +101,7 @@ export function InterestRail() {
           내 관심
         </button>
       </aside>
-      {open && <InterestDrawer profile={profile} onChange={setProfile} onClose={() => setOpen(false)} />}
+      {open && <InterestDrawer profile={profile} onChange={saveProfile} onClose={() => setOpen(false)} />}
     </>
   );
 }

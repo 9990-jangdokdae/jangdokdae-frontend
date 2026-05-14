@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Bell, BookOpenCheck, Check, Search, X } from "lucide-react";
+import { BookOpenCheck, Check, X } from "lucide-react";
 import { InterestRail } from "@/components/InterestRail";
+import { AuthHeader } from "@/components/AuthHeader";
 import { getIssueById } from "@/lib/jangdokdae-data";
 import type { JuriniTerm, QuizQuestion } from "@/types/jangdokdae";
 
@@ -24,44 +25,6 @@ function uniqueTags(tags: string[]) {
   return Array.from(new Set(tags));
 }
 
-function BrandMark() {
-  return (
-    <Link href="/" className="flex items-center gap-3" aria-label="장독대 홈">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-[#c96442] text-[20px] font-semibold text-white">장</span>
-      <span className="leading-none">
-        <span className="block text-[20px] font-semibold text-[#1d1d1f]">장독대</span>
-        <span className="mt-1 block text-[11px] font-medium text-[#7a7a7a]">시장 독해를 대신 해드립니다</span>
-      </span>
-    </Link>
-  );
-}
-
-function Header() {
-  return (
-    <header className="sticky top-0 z-40 h-[64px] border-b border-[#e0e0e0] bg-[#ffffff]/95 backdrop-blur">
-      <div className="flex h-full items-center px-8">
-        <BrandMark />
-        <nav className="ml-[220px] flex items-center gap-1 text-[14px] font-semibold text-[#1d1d1f]">
-          {["오늘의 독해", "이슈", "마켓 정보"].map((item, index) => (
-            <Link
-              key={item}
-              href={index === 0 ? "/" : index === 1 ? "/mv" : index === 2 ? "/market/indices" : "#"}
-              className={`rounded-full px-3 py-2 ${index === 1 ? "bg-[#f7f8fa] text-[#1d1d1f]" : "hover:bg-[#fbfcfd]"}`}
-            >
-              {item}
-            </Link>
-          ))}
-        </nav>
-        <button className="ml-3 flex h-9 w-[220px] items-center gap-2 rounded-full border border-[#e0e0e0] bg-white px-3 text-[13px] text-[#7a7a7a]">
-          <Search className="h-[17px] w-[17px]" />
-          이슈, 종목, 용어 검색
-        </button>
-        <Bell className="ml-auto h-5 w-5 text-[#7a7a7a]" />
-        <button className="ml-7 h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white">로그인</button>
-      </div>
-    </header>
-  );
-}
 
 function splitParagraphByTerms(paragraph: string, terms: JuriniTerm[]) {
   const sortedTerms = [...terms].sort((a, b) => b.term.length - a.term.length);
@@ -198,7 +161,7 @@ export function MarketVoiceDetailClient() {
   if (!issue) {
     return (
       <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-        <Header />
+        <AuthHeader activeIndex={1} />
         <InterestRail />
         <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
           <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
@@ -219,7 +182,7 @@ export function MarketVoiceDetailClient() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <Header />
+      <AuthHeader activeIndex={1} />
       <InterestRail />
 
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-24 pt-8">
