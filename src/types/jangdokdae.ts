@@ -83,3 +83,9 @@ export interface Issue {
   translation: JuriniTranslation;
   quizzes: QuizQuestion[];
 }
+
+export interface User {
+  id: string;
+  nickname: string;
+  provider: "kakao" | "google";
+}

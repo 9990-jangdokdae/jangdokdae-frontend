@@ -1,31 +1,18 @@
-import type { BackendIssueReading, InterestOption, InterestProfile, Issue } from "@/types/jangdokdae";
+import type { BackendIssueReading, InterestProfile, Issue } from "@/types/jangdokdae";
+export { SECTOR_OPTIONS as sectorOptions } from "@/constants/sectors";
+export { COMPANY_OPTIONS as companyOptions } from "@/constants/companies";
 
 export const interestStorageKey = "jangdokdae.interest-profile.v1";
-export const onboardingStorageKey = "jangdokdae.onboarding-complete.v1";
 
-export const sectorOptions: InterestOption[] = [
-  { id: "AI", label: "AI", description: "반도체, 데이터센터, 소프트웨어" },
-  { id: "반도체", label: "반도체", description: "메모리, 장비, 소재" },
-  { id: "2차전지", label: "2차전지", description: "배터리, 소재, 전기차" },
-  { id: "바이오", label: "바이오", description: "제약, 임상, 헬스케어" },
-  { id: "금융", label: "금융", description: "은행, 증권, 금리" },
-  { id: "방산", label: "방산", description: "수출, 항공우주, 국방" },
-  { id: "에너지", label: "에너지", description: "유가, 전력, 신재생" },
-];
-
-export const companyOptions: InterestOption[] = [
-  { id: "삼성전자", label: "삼성전자", description: "메모리 반도체" },
-  { id: "SK하이닉스", label: "SK하이닉스", description: "HBM, 서버 D램" },
-  { id: "NAVER", label: "NAVER", description: "AI, 플랫폼" },
-  { id: "현대차", label: "현대차", description: "전기차, 모빌리티" },
-  { id: "LG에너지솔루션", label: "LG에너지솔루션", description: "2차전지" },
-  { id: "한화에어로스페이스", label: "한화에어로스페이스", description: "방산, 항공" },
-  { id: "KB금융", label: "KB금융", description: "은행, 금융지주" },
-  { id: "셀트리온", label: "셀트리온", description: "바이오시밀러" },
-];
-
+/** localStorage/서버 fallback용 빈 상태. "아무것도 선택 안 함"을 의미. */
 export const defaultInterestProfile: InterestProfile = {
-  sectors: ["AI", "반도체"],
+  sectors: [],
+  companies: [],
+};
+
+/** 온보딩 첫 화면에 미리 선택되는 추천값. 사용자가 바로 수정 가능. */
+export const ONBOARDING_INITIAL_PROFILE: InterestProfile = {
+  sectors: ["반도체"],
   companies: ["삼성전자", "SK하이닉스"],
 };
 

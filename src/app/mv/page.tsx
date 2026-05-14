@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Bell, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { InterestRail } from "@/components/InterestRail";
-import { defaultInterestProfile, interestStorageKey, issues, matchesInterest } from "@/lib/jangdokdae-data";
-import type { InterestProfile, Issue } from "@/types/jangdokdae";
+import { AuthHeader } from "@/components/AuthHeader";
+import { issues, matchesInterest } from "@/lib/jangdokdae-data";
+import type { Issue } from "@/types/jangdokdae";
+import { useInterestProfile } from "@/hooks/useInterestProfile";
 
 type SourceType = "news" | "telegram" | "youtube" | "disclosure";
 type FeedTab = "interest" | "all";
@@ -37,18 +38,6 @@ const thumbnails = [
   `${imageBase}/db0b9654-5994-4f97-811e-b33895d9a595.jpg`,
 ];
 
-function readStoredProfile() {
-  if (typeof window === "undefined") return defaultInterestProfile;
-
-  const stored = window.localStorage.getItem(interestStorageKey);
-  if (!stored) return defaultInterestProfile;
-
-  try {
-    return JSON.parse(stored) as InterestProfile;
-  } catch {
-    return defaultInterestProfile;
-  }
-}
 
 function formatCollectedAt(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -61,44 +50,6 @@ function formatCollectedAt(value: string) {
   }).format(new Date(value));
 }
 
-function BrandMark() {
-  return (
-    <Link href="/" className="flex items-center gap-3" aria-label="장독대 홈">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-[#c96442] text-[20px] font-semibold text-white">장</span>
-      <span className="leading-none">
-        <span className="block text-[20px] font-semibold text-[#1d1d1f]">장독대</span>
-        <span className="mt-1 block text-[11px] font-medium text-[#7a7a7a]">시장 독해를 대신 해드립니다</span>
-      </span>
-    </Link>
-  );
-}
-
-function Header() {
-  return (
-    <header className="sticky top-0 z-40 h-[64px] border-b border-[#e0e0e0] bg-[#ffffff]/95 backdrop-blur">
-      <div className="flex h-full items-center px-8">
-        <BrandMark />
-        <nav className="ml-[220px] flex items-center gap-1 text-[14px] font-semibold text-[#1d1d1f]">
-          {["오늘의 독해", "이슈", "마켓 정보"].map((item, index) => (
-            <Link
-              key={item}
-              href={index === 0 ? "/" : index === 1 ? "/mv" : "/market/indices"}
-              className={`rounded-full px-3 py-2 ${index === 1 ? "bg-[#f7f8fa] text-[#1d1d1f]" : "hover:bg-[#fbfcfd]"}`}
-            >
-              {item}
-            </Link>
-          ))}
-        </nav>
-        <button className="ml-3 flex h-9 w-[220px] items-center gap-2 rounded-full border border-[#e0e0e0] bg-white px-3 text-[13px] text-[#7a7a7a]">
-          <Search className="h-[17px] w-[17px]" />
-          이슈, 종목, 용어 검색
-        </button>
-        <Bell className="ml-auto h-5 w-5 text-[#7a7a7a]" />
-        <button className="ml-7 h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white">로그인</button>
-      </div>
-    </header>
-  );
-}
 
 function SourceStack({ sources }: { sources: SourceType[] }) {
   return (
@@ -151,13 +102,7 @@ function FeedRow({ issue, index }: { issue: Issue; index: number }) {
 
 export default function MarketVoicePage() {
   const [activeTab, setActiveTab] = useState<FeedTab>("all");
-  const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
-
-  useEffect(() => {
-    window.queueMicrotask(() => {
-      setProfile(readStoredProfile());
-    });
-  }, []);
+  const { profile } = useInterestProfile();
 
   const interestIssues = useMemo(() => issues.filter((issue) => matchesInterest(issue, profile)), [profile]);
   const visibleIssues = activeTab === "interest" ? interestIssues : issues;
@@ -168,7 +113,7 @@ export default function MarketVoicePage() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <Header />
+      <AuthHeader activeIndex={1} />
       <InterestRail />
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-16 pt-4">
         <div className="flex h-14 items-end gap-4">
