@@ -9,7 +9,7 @@ import {
   issues,
   matchesInterest,
   sectorOptions,
-} from "@/lib/jangdokdae-data";
+} from "@/lib/jangdokdaeData";
 import type { InterestProfile, Issue, User } from "@/types/jangdokdae";
 import { toggleItem } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,7 +55,7 @@ function Header({
           {["오늘의 독해", "이슈", "마켓 정보"].map((item, index) => (
             <Link
               key={item}
-              href={index === 0 ? "/" : index === 1 ? "/mv" : index === 2 ? "/market/indices" : "#"}
+              href={index === 0 ? "/" : index === 1 ? "/issue-docent" : index === 2 ? "/market/indices" : "#"}
               className={`rounded-full px-3 py-2 ${index === 0 ? "bg-[#f7f8fa] text-[#1d1d1f]" : "hover:bg-[#fbfcfd]"}`}
             >
               {item}
@@ -209,7 +209,7 @@ function InterestDrawer({
 function IssueCard({ issue, featured = false }: { issue: Issue; featured?: boolean }) {
   return (
     <Link
-      href={`/mv/${issue.id}`}
+      href={`/issue-docent/${issue.id}`}
       className={`group block rounded-lg border border-[#e0e0e0] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#c96442] hover:shadow-[0_12px_30px_rgba(20,20,19,0.08)] ${
         featured ? "min-h-[230px]" : "min-h-[190px]"
       }`}
@@ -258,32 +258,28 @@ export default function Home() {
   const { user, isLoggedIn, isLoading: authLoading, openLoginModal, logout } = useAuth();
   const { profile, saveProfile, isLoading: profileLoading } = useInterestProfile();
 
-  const [hydrated, setHydrated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
   // 온보딩 중 임시 선택 상태 (완료 전까지 서버에 저장하지 않음)
   const [draftProfile, setDraftProfile] = useState<InterestProfile>(ONBOARDING_INITIAL_PROFILE);
-
-  // hydration 완료 표시: useEffect는 클라이언트에서만 실행되므로 직접 설정
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
 
   // 온보딩 표시: 로그인 상태이고 서버 프로필이 비어있으면 온보딩 시작
   // prevLoggedIn 방식은 OAuth 리다이렉트(페이지 새로고침) 후 prev가 null이 되어 동작하지 않음.
   // hasCheckedOnboarding ref로 마운트 후 최초 1회만 검사한다.
   const hasCheckedOnboarding = useRef(false);
   useEffect(() => {
-    if (!hydrated || profileLoading || !isLoggedIn) return;
+    if (profileLoading || !isLoggedIn) return;
     if (hasCheckedOnboarding.current) return;
 
     hasCheckedOnboarding.current = true;
     const isEmpty = profile.sectors.length === 0 && profile.companies.length === 0;
     if (isEmpty) {
-      setDraftProfile(ONBOARDING_INITIAL_PROFILE);
-      setShowOnboarding(true);
+      queueMicrotask(() => {
+        setDraftProfile(ONBOARDING_INITIAL_PROFILE);
+        setShowOnboarding(true);
+      });
     }
-  }, [isLoggedIn, hydrated, profileLoading, profile]);
+  }, [isLoggedIn, profileLoading, profile]);
 
   const personalizedIssues = useMemo(() => issues.filter((issue) => matchesInterest(issue, profile)), [profile]);
 
@@ -332,7 +328,7 @@ export default function Home() {
         <p className="mt-2">제공되는 정보는 학습과 시장 이해를 위한 콘텐츠이며, 특정 종목의 매수 또는 매도 권유가 아닙니다.</p>
       </footer>
 
-      {hydrated && showOnboarding && <OnboardingModal profile={draftProfile} onChange={setDraftProfile} onComplete={completeOnboarding} />}
+      {showOnboarding && <OnboardingModal profile={draftProfile} onChange={setDraftProfile} onComplete={completeOnboarding} />}
       {showInterests && <InterestDrawer profile={profile} onChange={saveProfile} onClose={() => setShowInterests(false)} />}
     </div>
   );

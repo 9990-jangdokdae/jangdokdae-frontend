@@ -8,7 +8,7 @@ import { LogoutConfirmModal } from "@/app/auth/LogoutConfirmModal";
 import { BrandMark } from "@/components/ui/BrandMark";
 
 const navItems = ["오늘의 독해", "이슈", "마켓 정보"] as const;
-const navHrefs = ["/", "/mv", "/market/indices"] as const;
+const navHrefs = ["/", "/issue-docent", "/market/indices"] as const;
 
 export function AuthHeader({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
   const { isLoggedIn, isLoading, user, openLoginModal, logout } = useAuth();

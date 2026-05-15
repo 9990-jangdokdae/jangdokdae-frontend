@@ -116,7 +116,7 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
           <div className="mt-10 space-y-3">
             {/* 클릭 시 백엔드 카카오 OAuth 시작점으로 이동 */}
             <a
-              href={`${API_BASE}/auth/kakao/login`}
+              href={`${API_BASE}/api/v1/auth/kakao/login`}
               className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-[#FEE500] text-[15px] font-semibold text-[#191919] transition hover:bg-[#f5db00]"
             >
               <KakaoIcon />
@@ -124,7 +124,7 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
             </a>
             {/* 클릭 시 백엔드 구글 OAuth 시작점으로 이동 */}
             <a
-              href={`${API_BASE}/auth/google/login`}
+              href={`${API_BASE}/api/v1/auth/google/login`}
               className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#e0e0e0] bg-white text-[15px] font-semibold text-[#1d1d1f] transition hover:bg-[#fbfcfd]"
             >
               <GoogleIcon />

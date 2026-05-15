@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { apiFetch } from "@/lib/api";
-import { defaultInterestProfile, interestStorageKey } from "@/lib/jangdokdae-data";
+import { defaultInterestProfile, interestStorageKey } from "@/lib/jangdokdaeData";
 import { useAuth } from "@/hooks/useAuth";
 
 function readLocalProfile(): InterestProfile {
@@ -41,38 +41,62 @@ export function useInterestProfile() {
   useEffect(() => {
     if (authLoading) return;
 
-    const prev = prevIsLoggedIn.current;
-    prevIsLoggedIn.current = isLoggedIn;
+    let cancelled = false;
 
-    // 로그아웃 전환 시 localStorage 클리어
-    if (prev === true && !isLoggedIn) {
-      clearLocalProfile();
-      setProfile(defaultInterestProfile);
-      setIsLoading(false);
-      return;
-    }
+    async function loadProfile() {
+      const prev = prevIsLoggedIn.current;
+      prevIsLoggedIn.current = isLoggedIn;
 
-    if (isLoggedIn) {
-      apiFetch("/user/profile")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data: { sectors: string[]; companies: string[] } | null) => {
+      // 로그아웃 전환 시 localStorage 클리어
+      if (prev === true && !isLoggedIn) {
+        clearLocalProfile();
+        if (!cancelled) {
+          setProfile(defaultInterestProfile);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (isLoggedIn) {
+        try {
+          const response = await apiFetch("/api/v1/user/profile");
+          const data = response.ok
+            ? ((await response.json()) as { sectors: string[]; companies: string[] })
+            : null;
+          if (cancelled) return;
+
           if (data) {
-            const serverProfile: InterestProfile = { sectors: data.sectors, companies: data.companies };
+            const serverProfile: InterestProfile = {
+              sectors: data.sectors,
+              companies: data.companies,
+            };
             setProfile(serverProfile);
             writeLocalProfile(serverProfile);
           } else {
             setProfile(readLocalProfile());
           }
-        })
-        .catch((err) => {
+        } catch (err) {
+          if (cancelled) return;
           console.error("[InterestProfile] 서버 프로필 로드 실패:", err);
           setProfile(readLocalProfile());
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setProfile(readLocalProfile());
-      setIsLoading(false);
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        const localProfile = readLocalProfile();
+        if (!cancelled) {
+          setProfile(localProfile);
+          setIsLoading(false);
+        }
+      }
     }
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, authLoading]);
 
   /**
@@ -85,7 +109,7 @@ export function useInterestProfile() {
       writeLocalProfile(next);
 
       if (isLoggedIn) {
-        const res = await apiFetch("/user/profile", {
+        const res = await apiFetch("/api/v1/user/profile", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sectors: next.sectors, companies: next.companies }),

@@ -119,7 +119,7 @@ const themeRows: ThemeRowData[] = [
 
 function Header() {
   const nav = [
-    { label: "마켓보이스", href: "/mv" },
+    { label: "마켓보이스", href: "/issue-docent" },
     { label: "종목 발굴", href: "/discover/screener/kr", active: true },
     { label: "마켓 정보", href: "/market/indices" },
     { label: "커뮤니티", href: "#" },

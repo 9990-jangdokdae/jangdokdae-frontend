@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Star, X } from "lucide-react";
-import { companyOptions, sectorOptions } from "@/lib/jangdokdae-data";
+import { companyOptions, sectorOptions } from "@/lib/jangdokdaeData";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { toggleItem } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";

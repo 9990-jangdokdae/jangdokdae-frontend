@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { InterestProfile } from "@/types/jangdokdae";
-import { sectorOptions, companyOptions } from "@/lib/jangdokdae-data";
+import { sectorOptions, companyOptions } from "@/lib/jangdokdaeData";
 import { toggleItem } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { OptionGrid } from "@/components/ui/OptionGrid";
