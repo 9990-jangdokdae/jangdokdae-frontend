@@ -208,6 +208,24 @@ interface MarketIndex {
 }
 ```
 
+## 섹터 목록
+
+### API
+
+```http
+GET /api/v1/sectors
+```
+
+### Response
+
+```ts
+type SectorsResponse = string[];
+// 예: ["반도체", "자동차/모빌리티", "2차전지", ...]
+// 백엔드 apps/src/config/sectors.py의 SECTORS와 동일
+```
+
+프론트엔드의 `useSectors` hook이 이 엔드포인트를 사용합니다. API 준비 전까지는 `src/constants/sectors.ts` 상수를 fallback으로 사용합니다.
+
 ## 관심사 설정
 
 ### API

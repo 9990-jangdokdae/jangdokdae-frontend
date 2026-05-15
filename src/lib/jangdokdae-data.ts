@@ -1,5 +1,4 @@
 import type { BackendIssueReading, InterestProfile, Issue } from "@/types/jangdokdae";
-export { SECTOR_OPTIONS as sectorOptions } from "@/constants/sectors";
 export { COMPANY_OPTIONS as companyOptions } from "@/constants/companies";
 
 export const interestStorageKey = "jangdokdae.interest-profile.v1";

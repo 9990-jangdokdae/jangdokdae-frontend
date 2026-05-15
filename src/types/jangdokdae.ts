@@ -2,6 +2,7 @@ export interface InterestOption {
   id: string;
   label: string;
   description?: string;
+  sector?: string;
 }
 
 export interface InterestProfile {

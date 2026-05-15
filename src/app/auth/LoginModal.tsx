@@ -10,8 +10,8 @@
  */
 "use client";
 
-import { X } from "lucide-react";
-import { API_BASE } from "@/lib/api";
+import { API_V1_BASE } from "@/lib/api";
+import { Modal } from "@/components/ui/Modal";
 
 function KakaoIcon() {
   return (
@@ -59,13 +59,9 @@ const FEATURES = [
  */
 export function LoginModal({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000]/45 px-6"
-      onClick={onClose}
-    >
+    <Modal onClose={onClose}>
       <section
         className="grid w-[820px] grid-cols-[300px_1fr] overflow-hidden rounded-xl shadow-[0_24px_80px_rgba(20,20,19,0.22)]"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* ── 좌측: 검은 브랜드 패널 ── */}
         <div className="flex flex-col bg-[#000000] p-8 text-[#ffffff]">
@@ -96,17 +92,7 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* ── 우측: 흰색 로그인 패널 ── */}
-        <div className="relative bg-[#ffffff] p-8">
-          {/* 닫기 버튼 */}
-          <button
-            className="absolute right-6 top-6 grid h-9 w-9 place-items-center rounded-full hover:bg-[#fbfcfd]"
-            aria-label="로그인 닫기"
-            onClick={onClose}
-            type="button"
-          >
-            <X className="h-5 w-5 text-[#7a7a7a]" />
-          </button>
-
+        <div className="bg-[#ffffff] p-8">
           <p className="text-[13px] font-semibold text-[#c96442]">소셜 로그인</p>
           <h2 className="mt-2 text-[28px] font-semibold text-[#1d1d1f]">장독대에 로그인</h2>
           <p className="mt-3 text-[14px] leading-6 text-[#7a7a7a]">
@@ -116,7 +102,7 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
           <div className="mt-10 space-y-3">
             {/* 클릭 시 백엔드 카카오 OAuth 시작점으로 이동 */}
             <a
-              href={`${API_BASE}/auth/kakao/login`}
+              href={`${API_V1_BASE}/auth/kakao/login`}
               className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-[#FEE500] text-[15px] font-semibold text-[#191919] transition hover:bg-[#f5db00]"
             >
               <KakaoIcon />
@@ -124,7 +110,7 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
             </a>
             {/* 클릭 시 백엔드 구글 OAuth 시작점으로 이동 */}
             <a
-              href={`${API_BASE}/auth/google/login`}
+              href={`${API_V1_BASE}/auth/google/login`}
               className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#e0e0e0] bg-white text-[15px] font-semibold text-[#1d1d1f] transition hover:bg-[#fbfcfd]"
             >
               <GoogleIcon />
@@ -138,6 +124,6 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
           </p>
         </div>
       </section>
-    </div>
+    </Modal>
   );
 }
