@@ -61,7 +61,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
     }
 
     if (isLoggedIn) {
-      apiFetch("/users/me/interests")
+      apiFetch("/user/profile")
         .then((r) => (r.ok ? r.json() : null))
         .then((data: { sectors: string[]; companies: string[] } | null) => {
           if (data) {
@@ -93,7 +93,7 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
       writeLocalProfile(next);
 
       if (isLoggedIn) {
-        const res = await apiFetch("/users/me/interests", {
+        const res = await apiFetch("/user/profile", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sectors: next.sectors, companies: next.companies }),
