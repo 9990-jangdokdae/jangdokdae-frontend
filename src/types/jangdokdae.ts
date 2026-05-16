@@ -32,6 +32,38 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export interface AnalysisSection {
+  title: string;
+  summary: string;
+}
+
+export interface RelatedCompany {
+  name: string;
+  ticker?: string;
+  subtitle?: string;
+  currentPrice?: string;
+  priceChangePct?: string;
+}
+
+export interface RelatedMarket {
+  name: string;
+  value?: string;
+  changePct?: string;
+  summary: string;
+}
+
+export interface KeyMetric {
+  label: string;
+  value: string;
+  emphasis?: string;
+}
+
+export interface SidebarContext {
+  relatedCompanies: RelatedCompany[];
+  relatedMarkets: RelatedMarket[];
+  keyMetrics: KeyMetric[];
+}
+
 export interface BackendTerm {
   term: string;
   explanation: string;
@@ -64,6 +96,8 @@ export interface BackendIssueReading {
   company: string[];
   keyword: string[];
   jurini_translation: BackendJuriniTranslation;
+  analysis_sections?: AnalysisSection[];
+  sidebar_context?: SidebarContext;
   quizzes: BackendQuizQuestion[];
 }
 
@@ -81,6 +115,8 @@ export interface Issue {
   companies: string[];
   keywords: string[];
   translation: JuriniTranslation;
+  analysisSections: AnalysisSection[];
+  sidebarContext: SidebarContext | null;
   quizzes: QuizQuestion[];
 }
 

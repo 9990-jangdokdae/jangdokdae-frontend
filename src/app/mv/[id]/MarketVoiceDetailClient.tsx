@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BookOpenCheck, Check, X } from "lucide-react";
+import { Activity, BookOpenCheck, Check, Cpu, Gamepad2, X } from "lucide-react";
 import { InterestRail } from "@/components/InterestRail";
 import { AuthHeader } from "@/components/AuthHeader";
 import { getIssueById } from "@/lib/jangdokdae-data";
-import type { JuriniTerm, QuizQuestion } from "@/types/jangdokdae";
+import { apiFetch } from "@/lib/api";
+import type {
+  AnalysisSection,
+  JuriniTerm,
+  KeyMetric,
+  QuizQuestion,
+  RelatedCompany,
+  RelatedMarket,
+} from "@/types/jangdokdae";
 
 function formatCollectedAt(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -93,6 +101,30 @@ function ParagraphWithTerms({
   );
 }
 
+function InlineTermsText({
+  text,
+  terms,
+  onOpenTerm,
+  className,
+}: {
+  text: string;
+  terms: JuriniTerm[];
+  onOpenTerm: (term: JuriniTerm) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {splitParagraphByTerms(text, terms).map((part, index) => (
+        part.term ? (
+          <TermTooltip key={`${part.text}-${index}`} term={part.term} onOpen={onOpenTerm} />
+        ) : (
+          <span key={`${part.text}-${index}`}>{part.text}</span>
+        )
+      ))}
+    </div>
+  );
+}
+
 function TermBottomSheet({ term, onClose }: { term: JuriniTerm; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-[#000000]/35 md:hidden" onClick={onClose}>
@@ -153,10 +185,295 @@ function QuizCard({ quiz }: { quiz: QuizQuestion }) {
   );
 }
 
+function AnalysisCard({
+  section,
+  terms,
+  onOpenTerm,
+}: {
+  section: AnalysisSection;
+  terms: JuriniTerm[];
+  onOpenTerm: (term: JuriniTerm) => void;
+}) {
+  return (
+    <article className="rounded-[22px] border border-[#eceef2] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(20,20,19,0.04)]">
+      <h2 className="ko-title text-[26px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">{section.title}</h2>
+      <InlineTermsText
+        text={section.summary}
+        terms={terms}
+        onOpenTerm={onOpenTerm}
+        className="ko-body mt-4 text-[16px] leading-8 text-[#35363a]"
+      />
+    </article>
+  );
+}
+
+function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
+  return (
+    <div className="rounded-[18px] border border-[#eef1f5] bg-[#fbfcfd] px-4 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
+          {(company.ticker || company.subtitle) && (
+            <p className="mt-0.5 break-keep text-[12px] leading-5 text-[#7a7a7a]">
+              {[company.ticker, company.subtitle].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
+        {(company.currentPrice || company.priceChangePct) && (
+          <div className="shrink-0 text-right">
+            {company.currentPrice && <p className="whitespace-nowrap text-[14px] font-semibold text-[#1d1d1f]">{company.currentPrice}</p>}
+            {company.priceChangePct && <p className="mt-0.5 whitespace-nowrap text-[12px] font-semibold text-[#2d6cdf]">{company.priceChangePct}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricItem({
+  metric,
+  terms,
+  onOpenTerm,
+}: {
+  metric: KeyMetric;
+  terms: JuriniTerm[];
+  onOpenTerm: (term: JuriniTerm) => void;
+}) {
+  return (
+    <div className="rounded-[18px] border border-[#eef1f5] bg-[#ffffff] px-4 py-2.5">
+      <p className="text-[12px] font-semibold text-[#7a7a7a]">{metric.label}</p>
+      <p className="mt-1 text-[17px] font-semibold text-[#1d1d1f]">{metric.value}</p>
+      {metric.emphasis && (
+        <InlineTermsText
+          text={metric.emphasis}
+          terms={terms}
+          onOpenTerm={onOpenTerm}
+          className="mt-0.5 text-[12px] font-medium leading-5 text-[#2d6cdf]"
+        />
+      )}
+    </div>
+  );
+}
+
+function getMarketIcon(name: string) {
+  if (name.includes("게임")) return Gamepad2;
+  if (name.includes("반도체")) return Cpu;
+  return Activity;
+}
+
+function MarketItem({
+  market,
+  terms,
+  onOpenTerm,
+}: {
+  market: RelatedMarket;
+  terms: JuriniTerm[];
+  onOpenTerm: (term: JuriniTerm) => void;
+}) {
+  const Icon = getMarketIcon(market.name);
+  return (
+    <div className="rounded-[20px] border border-[#e8eef9] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-3 shadow-[0_8px_24px_rgba(45,108,223,0.06)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#edf4ff] text-[#2d6cdf]">
+            <Icon className="h-4 w-4" />
+          </span>
+          <p className="text-[12px] font-bold tracking-[0.08em] text-[#2d6cdf] uppercase">{market.name}</p>
+        </div>
+        {(market.value || market.changePct) && (
+          <div className="shrink-0 text-right">
+            {market.value && <p className="whitespace-nowrap text-[15px] font-semibold text-[#1d1d1f]">{market.value}</p>}
+            {market.changePct && <p className="mt-1 whitespace-nowrap text-[13px] font-bold text-[#2d6cdf]">{market.changePct}</p>}
+          </div>
+        )}
+      </div>
+      <InlineTermsText
+        text={market.summary}
+        terms={terms}
+        onOpenTerm={onOpenTerm}
+        className="ko-body mt-2 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-[#1f2430]"
+      />
+    </div>
+  );
+}
+
+function SidebarCard({
+  companies,
+  markets,
+  metrics,
+  terms,
+  onOpenTerm,
+}: {
+  companies: RelatedCompany[];
+  markets: RelatedMarket[];
+  metrics: KeyMetric[];
+  terms: JuriniTerm[];
+  onOpenTerm: (term: JuriniTerm) => void;
+}) {
+  const motionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const element = motionRef.current;
+    if (!element) return;
+
+    let frameId = 0;
+    let currentOffset = 0;
+    let targetOffset = 0;
+    let lastScrollY = window.scrollY;
+
+    const applyStyles = (offset: number) => {
+      const lift = Math.abs(offset);
+      element.style.transform = `translate3d(0, ${offset}px, 0)`;
+      element.style.boxShadow = `0 ${12 + lift * 1.8}px ${36 + lift * 4}px rgba(20,20,19,${0.05 + lift * 0.006})`;
+    };
+
+    const settle = () => {
+      currentOffset += (targetOffset - currentOffset) * 0.16;
+      targetOffset *= 0.86;
+      applyStyles(currentOffset);
+
+      if (Math.abs(currentOffset) > 0.1 || Math.abs(targetOffset) > 0.1) {
+        frameId = window.requestAnimationFrame(settle);
+      } else {
+        currentOffset = 0;
+        targetOffset = 0;
+        applyStyles(0);
+        frameId = 0;
+      }
+    };
+
+    const handleScroll = () => {
+      const nextScrollY = window.scrollY;
+      const delta = nextScrollY - lastScrollY;
+      lastScrollY = nextScrollY;
+      targetOffset = Math.max(-6, Math.min(6, delta * 0.18));
+
+      if (!frameId) {
+        frameId = window.requestAnimationFrame(settle);
+      }
+    };
+
+    applyStyles(0);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  return (
+    <aside className="sticky top-24 w-[410px] self-start">
+      <div
+        ref={motionRef}
+        className="space-y-3 rounded-[28px] border border-[#e8ebf0] bg-white px-4 py-4 will-change-transform"
+      >
+        <section>
+          <div className="grid gap-2.5">
+            {companies.map((company) => <RelatedCompanyItem key={`${company.name}-${company.ticker ?? ""}`} company={company} />)}
+          </div>
+        </section>
+
+        <section className="border-t border-[#eef1f5] pt-3.5">
+          <div className="grid gap-2.5">
+            {markets.map((market) => (
+              <MarketItem
+                key={`${market.name}-${market.summary}`}
+                market={market}
+                terms={terms}
+                onOpenTerm={onOpenTerm}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-[#eef1f5] pt-3.5">
+          <div className="grid gap-2.5">
+            {metrics.map((metric) => (
+              <MetricItem
+                key={`${metric.label}-${metric.value}`}
+                metric={metric}
+                terms={terms}
+                onOpenTerm={onOpenTerm}
+              />
+            ))}
+          </div>
+        </section>
+
+      </div>
+    </aside>
+  );
+}
+
 export function MarketVoiceDetailClient() {
   const params = useParams<{ id: string }>();
   const issue = getIssueById(params.id);
   const [sheetTerm, setSheetTerm] = useState<JuriniTerm | null>(null);
+  const [sidebarContext, setSidebarContext] = useState(issue?.sidebarContext ?? null);
+
+  useEffect(() => {
+    if (!issue) return;
+
+    const controller = new AbortController();
+    setSidebarContext(issue.sidebarContext);
+
+    const fetchSidebarContext = async () => {
+      try {
+        const response = await apiFetch(`/api/v1/analysis/sidebar-context/${issue.id}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        const baseSidebarContext = issue.sidebarContext;
+        const liveRelatedCompanies = (payload?.related_companies ?? []).map((company: { name: string; ticker?: string; subtitle?: string; sector?: string; current_price?: string; currentPrice?: string; price_change_pct?: string; priceChangePct?: string }) => ({
+          name: company.name,
+          ticker: company.ticker,
+          subtitle: company.subtitle ?? company.sector,
+          currentPrice: company.current_price ?? company.currentPrice,
+          priceChangePct: company.price_change_pct ?? company.priceChangePct,
+        }));
+        const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string }) => ({
+          name: market.name,
+          value: market.value,
+          changePct: market.change_pct ?? market.changePct,
+        }));
+
+        const mergedMarkets = (baseSidebarContext?.relatedMarkets ?? []).map((market) => {
+          const liveMarket = liveRelatedMarkets.find((candidate: { name: string; value?: string; changePct?: string }) => candidate.name === market.name);
+          return liveMarket ? { ...market, ...liveMarket, summary: market.summary } : market;
+        });
+
+        const mergedSidebarContext = baseSidebarContext
+          ? {
+              relatedCompanies: liveRelatedCompanies.length > 0 ? liveRelatedCompanies : baseSidebarContext.relatedCompanies,
+              relatedMarkets: mergedMarkets.length > 0 ? mergedMarkets : baseSidebarContext.relatedMarkets,
+              keyMetrics: (payload?.key_metrics ?? []).length > 0
+                ? (payload.key_metrics as KeyMetric[]).map((metric) => ({
+                    label: metric.label,
+                    value: metric.value,
+                    emphasis: metric.emphasis,
+                  }))
+                : baseSidebarContext.keyMetrics,
+            }
+          : null;
+
+        setSidebarContext(mergedSidebarContext);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+      }
+    };
+
+    void fetchSidebarContext();
+
+    return () => controller.abort();
+  }, [issue]);
 
   if (!issue) {
     return (
@@ -185,8 +502,9 @@ export function MarketVoiceDetailClient() {
       <AuthHeader activeIndex={1} />
       <InterestRail />
 
-      <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-24 pt-8">
-        <article className="w-[920px]">
+      <main className="mx-[100px] w-[1220px] bg-[#ffffff] pb-24 pt-8">
+        <div className="flex items-start gap-10">
+        <article className="w-[770px]">
           <header className="border-b border-[#e0e0e0] pb-8">
             <p className="flex items-center gap-2 text-[14px] font-semibold text-[#c96442]">
               <BookOpenCheck className="h-4 w-4" />
@@ -201,7 +519,7 @@ export function MarketVoiceDetailClient() {
             <p className="mt-5 text-[13px] font-medium text-[#7a7a7a]">{issue.source.name} · {issue.source.publishedAt} 발행 · {formatCollectedAt(issue.collectedAt)} 수집</p>
           </header>
 
-          <section className="w-[760px] space-y-6 py-8">
+          <section className="w-full space-y-6 py-8">
             {issue.translation.explanation.map((paragraph, index) => (
               <ParagraphWithTerms
                 key={paragraph}
@@ -213,7 +531,22 @@ export function MarketVoiceDetailClient() {
             ))}
           </section>
 
-          <section className="w-[760px] border-t border-[#e0e0e0] py-8">
+          {issue.analysisSections.length > 0 && (
+            <section className="w-full border-t border-[#e0e0e0] py-8">
+              <div className="grid gap-5">
+                {issue.analysisSections.map((section) => (
+                  <AnalysisCard
+                    key={section.title}
+                    section={section}
+                    terms={issue.translation.terms}
+                    onOpenTerm={setSheetTerm}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="w-full border-t border-[#e0e0e0] py-8">
             <h2 className="text-[26px] font-semibold text-[#1d1d1f]">퀴즈</h2>
             <p className="mt-2 text-[14px] text-[#7a7a7a]">보기를 누르면 바로 채점됩니다.</p>
             <div className="mt-5 grid gap-4">
@@ -221,6 +554,16 @@ export function MarketVoiceDetailClient() {
             </div>
           </section>
         </article>
+        {sidebarContext && (
+          <SidebarCard
+            companies={sidebarContext.relatedCompanies}
+            markets={sidebarContext.relatedMarkets}
+            metrics={sidebarContext.keyMetrics}
+            terms={issue.translation.terms}
+            onOpenTerm={setSheetTerm}
+          />
+        )}
+        </div>
       </main>
       {sheetTerm && <TermBottomSheet term={sheetTerm} onClose={() => setSheetTerm(null)} />}
     </div>
