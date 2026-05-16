@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { Activity, BookOpenCheck, Check, Cpu, Gamepad2, X } from "lucide-react";
 import { InterestRail } from "@/components/InterestRail";
 import { AuthHeader } from "@/components/AuthHeader";
-import { getIssueById } from "@/lib/jangdokdae-data";
+import { fetchAnalyzerDetail, fetchIssueDocentDetail } from "@/lib/issue-docent";
 import { apiFetch } from "@/lib/api";
 import type {
   AnalysisSection,
@@ -407,73 +407,138 @@ function SidebarCard({
 
 export function MarketVoiceDetailClient() {
   const params = useParams<{ id: string }>();
-  const issue = getIssueById(params.id);
+  const [issue, setIssue] = useState<null | {
+    id: string;
+    analysisClusterId?: string | null;
+    title: string;
+    collectedAt: string;
+    source: { name: string; publishedAt: string };
+    sectors: string[];
+    companies: string[];
+    keywords: string[];
+    translation: {
+      title: string;
+      explanation: string[];
+      highlightExplanationIndex: number | null;
+      terms: JuriniTerm[];
+    };
+    analysisSections: AnalysisSection[];
+    sidebarContext: {
+      relatedCompanies: RelatedCompany[];
+      relatedMarkets: RelatedMarket[];
+      keyMetrics: KeyMetric[];
+    } | null;
+    quizzes: QuizQuestion[];
+  }>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [sheetTerm, setSheetTerm] = useState<JuriniTerm | null>(null);
-  const [sidebarContext, setSidebarContext] = useState(issue?.sidebarContext ?? null);
+  const [sidebarContext, setSidebarContext] = useState<{
+    relatedCompanies: RelatedCompany[];
+    relatedMarkets: RelatedMarket[];
+    keyMetrics: KeyMetric[];
+  } | null>(null);
 
   useEffect(() => {
-    if (!issue) return;
-
     const controller = new AbortController();
-    setSidebarContext(issue.sidebarContext);
 
-    const fetchSidebarContext = async () => {
+    const loadIssue = async () => {
       try {
-        const response = await apiFetch(`/api/v1/analysis/sidebar-context/${issue.id}`, {
-          signal: controller.signal,
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
+        setIsLoading(true);
+        // issue-docent 상세를 먼저 읽고, analyzer는 cluster_id 기준으로 뒤에서 결합한다.
+        const nextIssue = await fetchIssueDocentDetail(params.id, controller.signal);
+        if (!nextIssue) {
+          setIssue(null);
+          setSidebarContext(null);
           return;
         }
 
-        const payload = await response.json();
-        const baseSidebarContext = issue.sidebarContext;
-        const liveRelatedCompanies = (payload?.related_companies ?? []).map((company: { name: string; ticker?: string; subtitle?: string; sector?: string; current_price?: string; currentPrice?: string; price_change_pct?: string; priceChangePct?: string }) => ({
-          name: company.name,
-          ticker: company.ticker,
-          subtitle: company.subtitle ?? company.sector,
-          currentPrice: company.current_price ?? company.currentPrice,
-          priceChangePct: company.price_change_pct ?? company.priceChangePct,
-        }));
-        const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string }) => ({
-          name: market.name,
-          value: market.value,
-          changePct: market.change_pct ?? market.changePct,
-        }));
+        setIssue(nextIssue);
+        setSidebarContext(nextIssue.sidebarContext);
 
-        const mergedMarkets = (baseSidebarContext?.relatedMarkets ?? []).map((market) => {
-          const liveMarket = liveRelatedMarkets.find((candidate: { name: string; value?: string; changePct?: string }) => candidate.name === market.name);
-          return liveMarket ? { ...market, ...liveMarket, summary: market.summary } : market;
-        });
+        const clusterId = nextIssue.analysisClusterId;
+        if (!clusterId) return;
 
-        const mergedSidebarContext = baseSidebarContext
-          ? {
-              relatedCompanies: liveRelatedCompanies.length > 0 ? liveRelatedCompanies : baseSidebarContext.relatedCompanies,
-              relatedMarkets: mergedMarkets.length > 0 ? mergedMarkets : baseSidebarContext.relatedMarkets,
-              keyMetrics: (payload?.key_metrics ?? []).length > 0
-                ? (payload.key_metrics as KeyMetric[]).map((metric) => ({
-                    label: metric.label,
-                    value: metric.value,
-                    emphasis: metric.emphasis,
-                  }))
-                : baseSidebarContext.keyMetrics,
-            }
-          : null;
+        // 본문 분석 섹션과 live sidebar를 분리해서 붙여,
+        // 기존 요약/퀴즈 흐름을 건드리지 않고 analyzer만 확장한다.
+        const [analysisResult, sidebarResponse] = await Promise.allSettled([
+          fetchAnalyzerDetail(clusterId, controller.signal),
+          apiFetch(`/api/v1/analysis/sidebar-context/${clusterId}`, {
+            signal: controller.signal,
+            cache: "no-store",
+          }),
+        ]);
 
-        setSidebarContext(mergedSidebarContext);
+        if (analysisResult.status === "fulfilled") {
+          setIssue((current) =>
+            current
+              ? {
+                  ...current,
+                  analysisSections: analysisResult.value.analysisSections,
+                  sidebarContext: analysisResult.value.sidebarContext ?? current.sidebarContext,
+                }
+              : current,
+          );
+          if (analysisResult.value.sidebarContext) {
+            setSidebarContext(analysisResult.value.sidebarContext);
+          }
+        }
+
+        if (sidebarResponse.status === "fulfilled" && sidebarResponse.value.ok) {
+          const payload = await sidebarResponse.value.json();
+          const liveRelatedCompanies = (payload?.related_companies ?? []).map((company: { name: string; ticker?: string; subtitle?: string; sector?: string; current_price?: string; currentPrice?: string; price_change_pct?: string; priceChangePct?: string }) => ({
+            name: company.name,
+            ticker: company.ticker,
+            subtitle: company.subtitle ?? company.sector,
+            currentPrice: company.current_price ?? company.currentPrice,
+            priceChangePct: company.price_change_pct ?? company.priceChangePct,
+          }));
+          const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string }) => ({
+            name: market.name,
+            value: market.value,
+            changePct: market.change_pct ?? market.changePct,
+            summary: "",
+          }));
+          const liveMetrics = (payload?.key_metrics ?? []).map((metric: KeyMetric) => ({
+            label: metric.label,
+            value: metric.value,
+            emphasis: metric.emphasis,
+          }));
+
+          // 초기 sidebarContext가 없어도 live 응답만으로 바로 렌더될 수 있게 유지한다.
+          setSidebarContext((current) => ({
+            relatedCompanies: liveRelatedCompanies.length > 0 ? liveRelatedCompanies : (current?.relatedCompanies ?? []),
+            relatedMarkets: liveRelatedMarkets.length > 0 ? liveRelatedMarkets : (current?.relatedMarkets ?? []),
+            keyMetrics: liveMetrics.length > 0 ? liveMetrics : (current?.keyMetrics ?? []),
+          }));
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    void fetchSidebarContext();
+    void loadIssue();
 
     return () => controller.abort();
-  }, [issue]);
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
+        <AuthHeader activeIndex={1} />
+        <InterestRail />
+        <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
+          <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
+            <p className="text-[13px] font-semibold text-[#c96442]">불러오는 중</p>
+            <h1 className="ko-title mt-3 text-[30px] font-semibold leading-[1.25] text-[#1d1d1f]">이슈 상세를 불러오고 있어요.</h1>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   if (!issue) {
     return (

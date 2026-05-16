@@ -6,10 +6,10 @@ import { Bell, ChevronLeft, ChevronRight, Clock3, Search, Star, X } from "lucide
 import {
   companyOptions,
   ONBOARDING_INITIAL_PROFILE,
-  issues,
-  matchesInterest,
   sectorOptions,
 } from "@/lib/jangdokdae-data";
+import { fetchIssueDocentList } from "@/lib/issue-docent";
+import { matchesInterest } from "@/lib/issue-match";
 import type { InterestProfile, Issue, User } from "@/types/jangdokdae";
 import { toggleItem } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -257,6 +257,8 @@ function IssueSection({ title, description, items, empty }: { title: string; des
 export default function Home() {
   const { user, isLoggedIn, isLoading: authLoading, openLoginModal, logout } = useAuth();
   const { profile, saveProfile, isLoading: profileLoading } = useInterestProfile();
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
 
   const [hydrated, setHydrated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -267,6 +269,24 @@ export default function Home() {
   // hydration 완료 표시: useEffect는 클라이언트에서만 실행되므로 직접 설정
   useEffect(() => {
     setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadIssues = async () => {
+      try {
+        const nextIssues = await fetchIssueDocentList(controller.signal);
+        setIssues(nextIssues);
+      } catch {
+        setIssues([]);
+      } finally {
+        setIssuesLoading(false);
+      }
+    };
+
+    void loadIssues();
+    return () => controller.abort();
   }, []);
 
   // 온보딩 표시: 로그인 상태이고 서버 프로필이 비어있으면 온보딩 시작
@@ -316,14 +336,15 @@ export default function Home() {
         <IssueSection
           title="내 관심 이슈"
           description="온보딩에서 고른 섹터와 종목에 맞춰 먼저 보여드려요."
-          items={personalizedIssues}
-          empty="아직 선택한 관심사와 딱 맞는 이슈가 없어요. 우측 내 관심에서 관심사를 넓히거나 아래 전체 시장 이슈를 확인해보세요."
+          items={issuesLoading ? [] : personalizedIssues}
+          empty={issuesLoading ? "이슈를 불러오는 중입니다." : "아직 선택한 관심사와 딱 맞는 이슈가 없어요. 우측 내 관심에서 관심사를 넓히거나 아래 전체 시장 이슈를 확인해보세요."}
         />
 
         <IssueSection
           title="오늘의 전체 시장 이슈"
           description="관심사 밖의 흐름도 놓치지 않도록 함께 모아두었습니다."
-          items={issues}
+          items={issuesLoading ? [] : issues}
+          empty={issuesLoading ? "이슈를 불러오는 중입니다." : "표시할 이슈가 아직 없습니다."}
         />
       </main>
 

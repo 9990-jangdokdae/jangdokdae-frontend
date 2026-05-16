@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InterestRail } from "@/components/InterestRail";
 import { AuthHeader } from "@/components/AuthHeader";
-import { issues, matchesInterest } from "@/lib/jangdokdae-data";
+import { fetchIssueDocentList } from "@/lib/issue-docent";
+import { matchesInterest } from "@/lib/issue-match";
 import type { Issue } from "@/types/jangdokdae";
 import { useInterestProfile } from "@/hooks/useInterestProfile";
 
@@ -102,7 +103,27 @@ function FeedRow({ issue, index }: { issue: Issue; index: number }) {
 
 export default function MarketVoicePage() {
   const [activeTab, setActiveTab] = useState<FeedTab>("all");
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { profile } = useInterestProfile();
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadIssues = async () => {
+      try {
+        const nextIssues = await fetchIssueDocentList(controller.signal);
+        setIssues(nextIssues);
+      } catch {
+        setIssues([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadIssues();
+    return () => controller.abort();
+  }, []);
 
   const interestIssues = useMemo(() => issues.filter((issue) => matchesInterest(issue, profile)), [profile]);
   const visibleIssues = activeTab === "interest" ? interestIssues : issues;
@@ -156,7 +177,11 @@ export default function MarketVoicePage() {
         </div>
 
         <div className="mt-6">
-          {visibleIssues.length > 0 ? (
+          {isLoading ? (
+            <div className="rounded-lg border border-dashed border-[#e0e0e0] bg-[#f7f8fa] px-8 py-10 text-[15px] leading-7 text-[#7a7a7a]">
+              이슈를 불러오는 중입니다.
+            </div>
+          ) : visibleIssues.length > 0 ? (
             visibleIssues.map((issue, index) => <FeedRow key={issue.id} issue={issue} index={index} />)
           ) : (
             <div className="mt-8 rounded-lg border border-dashed border-[#e0e0e0] bg-[#f7f8fa] px-8 py-10 text-[15px] leading-7 text-[#7a7a7a]">

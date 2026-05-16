@@ -64,43 +64,6 @@ export interface SidebarContext {
   keyMetrics: KeyMetric[];
 }
 
-export interface BackendTerm {
-  term: string;
-  explanation: string;
-}
-
-export interface BackendJuriniTranslation {
-  title: string;
-  explanation: string[];
-  highlight_explanation_index: number | null;
-  terms: BackendTerm[];
-}
-
-export interface BackendQuizQuestion {
-  quiz_id: string;
-  kind: QuizKind;
-  question: string;
-  options: string[];
-  answer_index: number;
-  explanation: string;
-}
-
-export interface BackendIssueReading {
-  news_id: number | string;
-  issue_id: number | string | null;
-  news_title: string;
-  collected_at: string;
-  published_at: string;
-  source_name: string;
-  sector: string[];
-  company: string[];
-  keyword: string[];
-  jurini_translation: BackendJuriniTranslation;
-  analysis_sections?: AnalysisSection[];
-  sidebar_context?: SidebarContext;
-  quizzes: BackendQuizQuestion[];
-}
-
 export interface IssueSource {
   name: string;
   publishedAt: string;
@@ -108,6 +71,8 @@ export interface IssueSource {
 
 export interface Issue {
   id: string;
+  // Analyzer 상세/사이드바는 issue id가 아니라 cluster_id를 기준으로 조회한다.
+  analysisClusterId?: string | null;
   title: string;
   collectedAt: string;
   source: IssueSource;
@@ -115,7 +80,9 @@ export interface Issue {
   companies: string[];
   keywords: string[];
   translation: JuriniTranslation;
+  // 요약 본문 아래에 붙는 analyzer 본문 섹션들이다.
   analysisSections: AnalysisSection[];
+  // 우측 analyzer 사이드바에 쓰이는 보조 데이터다.
   sidebarContext: SidebarContext | null;
   quizzes: QuizQuestion[];
 }
