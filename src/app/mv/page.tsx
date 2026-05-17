@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { InterestRail } from "@/components/InterestRail";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 import { issues, matchesInterest } from "@/lib/jangdokdae-data";
 import type { Issue } from "@/types/jangdokdae";
 import { useInterestProfile } from "@/hooks/useInterestProfile";
@@ -113,8 +112,7 @@ export default function MarketVoicePage() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <AuthHeader activeIndex={1} />
-      <InterestRail />
+      <Header activeIndex={1} />
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-16 pt-4">
         <div className="flex h-14 items-end gap-4">
           {tabs.map((tab) => {

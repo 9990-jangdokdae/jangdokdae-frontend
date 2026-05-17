@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { BookOpenCheck, Check, X } from "lucide-react";
-import { InterestRail } from "@/components/InterestRail";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 import { getIssueById } from "@/lib/jangdokdae-data";
 import type { JuriniTerm, QuizQuestion } from "@/types/jangdokdae";
 
@@ -161,8 +160,7 @@ export function MarketVoiceDetailClient() {
   if (!issue) {
     return (
       <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-        <AuthHeader activeIndex={1} />
-        <InterestRail />
+        <Header activeIndex={1} />
         <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
           <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
             <p className="text-[13px] font-semibold text-[#c96442]">이슈를 찾을 수 없습니다</p>
@@ -182,8 +180,7 @@ export function MarketVoiceDetailClient() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <AuthHeader activeIndex={1} />
-      <InterestRail />
+      <Header activeIndex={1} />
 
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-24 pt-8">
         <article className="w-[920px]">
