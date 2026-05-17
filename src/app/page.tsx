@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { issues, matchesInterest } from "@/lib/jangdokdae-data";
+import { issues, matchesInterest } from "@/lib/jangdokdaeData";
 import type { Issue } from "@/types/jangdokdae";
 import { useInterestProfile } from "@/hooks/useInterestProfile";
 import { Header } from "@/components/Header";
@@ -22,7 +22,7 @@ function formatCollectedAt(value: string) {
 function IssueCard({ issue, featured = false }: { issue: Issue; featured?: boolean }) {
   return (
     <Link
-      href={`/mv/${issue.id}`}
+      href={`/issue-docent/${issue.id}`}
       className={`group block rounded-lg border border-[#e0e0e0] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#c96442] hover:shadow-[0_12px_30px_rgba(20,20,19,0.08)] ${
         featured ? "min-h-[230px]" : "min-h-[190px]"
       }`}

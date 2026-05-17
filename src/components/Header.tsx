@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useInterestProfile } from "@/hooks/useInterestProfile";
-import { ONBOARDING_INITIAL_PROFILE } from "@/lib/jangdokdae-data";
+import { ONBOARDING_INITIAL_PROFILE } from "@/lib/jangdokdaeData";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { LogoutConfirmModal } from "@/app/auth/LogoutConfirmModal";
 import { OnboardingModal } from "@/app/onboarding/OnboardingModal";
@@ -13,7 +13,7 @@ import { BrandMark } from "@/components/ui/BrandMark";
 import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 
 const navItems = ["오늘의 독해", "이슈", "마켓 정보"] as const;
-const navHrefs = ["/", "/mv", "/market/indices"] as const;
+const navHrefs = ["/", "/issue-docent", "/market/indices"] as const;
 
 export function Header({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
   const { isLoggedIn, isLoading, user, openLoginModal, logout } = useAuth();
