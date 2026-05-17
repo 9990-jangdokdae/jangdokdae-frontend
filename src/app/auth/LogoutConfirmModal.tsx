@@ -1,6 +1,6 @@
 "use client";
 
-import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { Modal } from "@/components/ui/Modal";
 
 /**
  * 로그아웃 확인 모달.
@@ -16,16 +16,10 @@ export function LogoutConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  useLockBodyScroll();
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000]/45 px-6"
-      onClick={onCancel}
-    >
+    <Modal onClose={onCancel}>
       <section
         className="w-[380px] rounded-xl bg-[#ffffff] p-7 shadow-[0_24px_80px_rgba(20,20,19,0.22)]"
-        onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[20px] font-semibold text-[#1d1d1f]">로그아웃</h2>
         <p className="mt-3 text-[14px] leading-6 text-[#7a7a7a]">정말 로그아웃 하시겠습니까?</p>
@@ -46,6 +40,6 @@ export function LogoutConfirmModal({
           </button>
         </div>
       </section>
-    </div>
+    </Modal>
   );
 }

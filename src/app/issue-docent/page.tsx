@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 import { InterestRail } from "@/components/InterestRail";
 import { formatIssueDocentDateTime, getIssueDocents } from "@/lib/issueDocent";
 import type { IssueDocentListItem, SectorCompanies } from "@/types/issueDocent";
@@ -56,7 +56,7 @@ export default async function IssueDocentPage() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
-      <AuthHeader activeIndex={1} />
+      <Header activeIndex={1} />
       <InterestRail />
       <main className="mx-[100px] w-[1176px] bg-white pb-16 pt-4">
         <h1 className="text-[28px] font-semibold">이슈 도슨트</h1>

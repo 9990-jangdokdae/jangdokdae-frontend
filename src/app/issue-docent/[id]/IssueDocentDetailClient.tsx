@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BookOpenCheck, Check, ExternalLink, X } from "lucide-react";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 import { InterestRail } from "@/components/InterestRail";
 import { AppModal } from "@/components/ui/AppModal";
 import { formatIssueDocentDate, formatIssueDocentDateTime } from "@/lib/issueDocent";
@@ -158,7 +158,7 @@ export function IssueDocentDetailClient({
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
-      <AuthHeader activeIndex={1} />
+      <Header activeIndex={1} />
       <InterestRail />
 
       <main className="mx-[100px] w-[1176px] bg-white pb-24 pt-8">

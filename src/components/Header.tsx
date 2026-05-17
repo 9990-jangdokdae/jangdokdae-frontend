@@ -4,15 +4,40 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useInterestProfile } from "@/hooks/useInterestProfile";
+import { ONBOARDING_INITIAL_PROFILE } from "@/lib/jangdokdaeData";
+import type { InterestProfile } from "@/types/jangdokdae";
 import { LogoutConfirmModal } from "@/app/auth/LogoutConfirmModal";
+import { OnboardingModal } from "@/app/onboarding/OnboardingModal";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { UserMenuDropdown } from "@/components/ui/UserMenuDropdown";
 
 const navItems = ["오늘의 독해", "이슈", "마켓 정보"] as const;
 const navHrefs = ["/", "/issue-docent", "/market/indices"] as const;
 
-export function AuthHeader({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
+export function Header({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
   const { isLoggedIn, isLoading, user, openLoginModal, logout } = useAuth();
+  const { profile, saveProfile } = useInterestProfile();
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [draftProfile, setDraftProfile] = useState<InterestProfile>(ONBOARDING_INITIAL_PROFILE);
+
+  const hasInterests = profile.sectors.length > 0 || profile.companies.length > 0;
+
+  const openOnboarding = () => {
+    setDraftProfile(hasInterests ? profile : ONBOARDING_INITIAL_PROFILE);
+    setShowOnboarding(true);
+  };
+
+  const completeOnboarding = async () => {
+    try {
+      await saveProfile(draftProfile);
+      setShowOnboarding(false);
+    } catch {
+      alert("프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  };
 
   return (
     <>
@@ -30,7 +55,7 @@ export function AuthHeader({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
               </Link>
             ))}
           </nav>
-          <button className="ml-3 flex h-9 w-[220px] items-center gap-2 rounded-full border border-[#e0e0e0] bg-white px-3 text-[13px] text-[#7a7a7a]">
+          <button className="ml-3 flex h-9 w-[220px] items-center gap-2 rounded-full border border-[#e0e0e0] bg-white px-3 text-[13px] text-[#7a7a7a]" type="button">
             <Search className="h-[17px] w-[17px]" />
             이슈, 종목, 용어 검색
           </button>
@@ -38,20 +63,13 @@ export function AuthHeader({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
           {isLoading ? (
             <div className="ml-7 h-10 w-28 animate-pulse rounded-lg bg-[#f0f0f0]" />
           ) : isLoggedIn ? (
-            <div className="ml-7 flex items-center gap-2">
-              <button
-                className="h-10 rounded-lg border border-[#e0e0e0] bg-white px-4 text-[14px] font-semibold text-[#1d1d1f]"
-                type="button"
-              >
-                {user?.nickname ?? "사용자"}
-              </button>
-              <button
-                className="h-10 rounded-lg bg-[#c96442] px-5 text-[14px] font-semibold text-white transition hover:bg-[#b65335]"
-                onClick={() => setShowLogoutConfirm(true)}
-                type="button"
-              >
-                로그아웃
-              </button>
+            <div className="ml-7">
+              <UserMenuDropdown
+                nickname={user?.nickname ?? "사용자"}
+                hasInterests={hasInterests}
+                onOpenOnboarding={openOnboarding}
+                onLogout={() => setShowLogoutConfirm(true)}
+              />
             </div>
           ) : (
             <button
@@ -64,10 +82,19 @@ export function AuthHeader({ activeIndex }: { activeIndex: 0 | 1 | 2 }) {
           )}
         </div>
       </header>
+
       {showLogoutConfirm && (
         <LogoutConfirmModal
           onConfirm={() => { setShowLogoutConfirm(false); logout(); }}
           onCancel={() => setShowLogoutConfirm(false)}
+        />
+      )}
+      {showOnboarding && (
+        <OnboardingModal
+          profile={draftProfile}
+          onChange={setDraftProfile}
+          onComplete={completeOnboarding}
+          onClose={() => setShowOnboarding(false)}
         />
       )}
     </>
