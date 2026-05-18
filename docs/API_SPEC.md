@@ -103,7 +103,7 @@ interface SectorCompany {
 
 - `title`, `teaser`, 메타 정보가 시각적으로 나뉘어 보이더라도 하나의 피드 아이템으로 취급한다.
 - `teaser`는 피드 카드용 문구다.
-- 목록에는 `summary`, `explanation`, `articles`, `matched_terms`, `quizzes`를 포함하지 않는다.
+- 목록에는 `summary`, `articles`, `matched_terms`, `quizzes`를 포함하지 않는다.
 - `article_count`가 1이면 단일 기사 기반 Issue Docent로 볼 수 있다.
 - 목록 카드에서는 `sector_companies`를 사용해 섹터를 상위, 종목을 하위 정보로 표시한다.
 - `sector_companies`는 백엔드가 `entity_extraction.company_names`와 `company_master`를 조합해 만드는 화면용 projection이다.
@@ -124,7 +124,7 @@ interface SectorCompany {
 
 Status: 백엔드 `구현됨` / 프론트 `구현됨`
 
-도슨트 본문, 원본 기사 목록, 문단별 용어 매칭 결과, 퀴즈를 반환한다.
+본문, 원본 기사 목록, 문단별 용어 매칭 결과, 퀴즈를 반환한다.
 
 ### API
 
@@ -142,7 +142,7 @@ interface IssueDocentDetailResponse {
   teaser: string;
   sector_companies: SectorCompanies[];
   article_count: number;
-  explanation: ExplanationSection[];
+  summary: SummaryContent;
   articles: SourceArticle[];
   quizzes: IssueDocentQuiz[];
   created_at: string;
@@ -155,28 +155,29 @@ interface IssueDocentDetailResponse {
 - 상세 상단의 `title`과 `원문 보기` 버튼은 하나의 상세 헤더 영역 안에 배치한다.
 - `teaser`는 상세의 핵심 노출 요소가 아니라 피드 카드용 문구다.
 - 원본 기사는 상세 본문에 직접 펼치지 않고 `원문 보기` 팝업에서 제공한다.
-- 화면 구성 순서는 `explanation` 본문 렌더링 후 `analysis_sections`를 추가로 렌더링하고, 마지막에 `quizzes`를 렌더링한다.
+- 화면 구성 순서는 `summary` 본문 렌더링 후 `analysis_sections`를 추가로 렌더링하고, 마지막에 `quizzes`를 렌더링한다.
+- 본문에는 별도 고정 heading을 붙이지 않는다.
 - 상세 API에 포함된 `articles` 배열만 사용하며, 원문 기사용 별도 API는 만들지 않는다.
 - 상세는 로딩, 에러, 찾을 수 없음 상태를 가진다.
 
-## Explanation
+## Summary
 
 Status: 백엔드 `구현됨` / 프론트 `구현됨`
 
 ```ts
-interface ExplanationSection {
-  section_type: string;
-  title: string;
-  paragraphs: ExplanationParagraph[];
+interface SummaryContent {
+  paragraphs: SummaryParagraph[];
 }
 
-interface ExplanationParagraph {
+interface SummaryParagraph {
   text: string;
   matched_terms: MatchedTerm[];
 }
 ```
 
-`matched_terms`는 DB에 저장된 값이 아니라 API 서버가 `issue_docent.explanation`과 `stock_terms`를 비교해 만든 파생 응답이다.
+`summary`는 DB에 저장된 `issue_docent.summary` 텍스트를 API 서버가 문단 단위로 변환한 응답이다.
+
+`matched_terms`는 DB에 저장된 값이 아니라 API 서버가 `issue_docent.summary`와 `stock_terms`를 비교해 만든 파생 응답이다.
 
 ## 용어 매칭
 
@@ -469,5 +470,5 @@ GET /api/v1/issue-readings/{id}
 
 - 기존 구조는 단일 뉴스 기반 콘텐츠를 전제로 했다.
 - 새 구조는 클러스터 1개 = Issue Docent 콘텐츠 1개를 기준으로 한다.
-- 기존 `jurini_translation.explanation`, `terms`, `highlight_explanation_index`는 새 `explanation.sections[].paragraphs[].matched_terms` 구조로 대체한다.
+- 기존 `jurini_translation.explanation`, `terms`, `highlight_explanation_index`는 새 `summary.paragraphs[].matched_terms` 구조로 대체한다.
 - 기존 `/mv` 프론트 경로는 `/issue-docent`로 전환하고, 임시 redirect는 남기지 않는다.

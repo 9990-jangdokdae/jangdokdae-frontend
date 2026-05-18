@@ -382,23 +382,21 @@ export function IssueDocentDetailClient({
     const seen = new Set<string>();
     const terms: TermDefinition[] = [];
 
-    for (const section of issueDocent.explanation ?? []) {
-      for (const paragraph of section.paragraphs ?? []) {
-        for (const term of paragraph.matched_terms ?? []) {
-          const key = `${term.term}::${term.definition}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          terms.push({
-            term: term.term,
-            definition: term.definition,
-            category: term.category,
-          });
-        }
+    for (const paragraph of issueDocent.summary.paragraphs) {
+      for (const term of paragraph.matched_terms ?? []) {
+        const key = `${term.term}::${term.definition}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        terms.push({
+          term: term.term,
+          definition: term.definition,
+          category: term.category,
+        });
       }
     }
 
     return terms;
-  }, [issueDocent.explanation]);
+  }, [issueDocent.summary.paragraphs]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -475,23 +473,14 @@ export function IssueDocentDetailClient({
               </p>
             </header>
 
-            <section className="w-full space-y-9 py-8">
-              {issueDocent.explanation.map((section) => (
-                <section key={`${section.section_type}-${section.title}`} className="space-y-5">
-                  <h2 className="ko-title text-[24px] font-semibold text-[#1d1d1f]">
-                    {section.title}
-                  </h2>
-                  <div className="space-y-5">
-                    {section.paragraphs.map((paragraph, index) => (
-                      <ParagraphWithTerms
-                        key={`${section.section_type}-${index}`}
-                        onOpenTerm={setSelectedTerm}
-                        terms={paragraph.matched_terms}
-                        text={paragraph.text}
-                      />
-                    ))}
-                  </div>
-                </section>
+            <section className="w-full space-y-5 py-8">
+              {issueDocent.summary.paragraphs.map((paragraph, index) => (
+                <ParagraphWithTerms
+                  key={`${paragraph.text}-${index}`}
+                  onOpenTerm={setSelectedTerm}
+                  terms={paragraph.matched_terms}
+                  text={paragraph.text}
+                />
               ))}
             </section>
 

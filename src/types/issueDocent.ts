@@ -35,19 +35,17 @@ export interface IssueDocentDetailResponse {
   teaser: string;
   sector_companies: SectorCompanies[];
   article_count: number;
-  explanation: ExplanationSection[];
+  summary: SummaryContent;
   articles: SourceArticle[];
   quizzes: IssueDocentQuiz[];
   created_at: string;
 }
 
-export interface ExplanationSection {
-  section_type: string;
-  title: string;
-  paragraphs: ExplanationParagraph[];
+export interface SummaryContent {
+  paragraphs: SummaryParagraph[];
 }
 
-export interface ExplanationParagraph {
+export interface SummaryParagraph {
   text: string;
   matched_terms: MatchedTerm[];
 }
