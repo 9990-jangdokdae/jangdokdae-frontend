@@ -318,6 +318,7 @@ interface AnalyzerMetricResponse {
 ### 프론트 소비 규칙
 
 - `/issue-docent/[id]` 상세의 기본 데이터 fetch는 서버 컴포넌트에서 수행한다.
+- analyzer 결과는 백엔드 생성 단계에서 미리 저장된 값을 조회하는 구조를 기준으로 한다.
 - 상세 클라이언트 컴포넌트는 `IssueDocentDetailResponse.cluster_id`를 기준으로 analyzer detail/sidebar 데이터를 추가 조회한다.
 - analyzer API 응답 타입은 `src/types`에 둔다.
 - analyzer API 호출과 응답 변환은 `src/lib`에서 관리한다.
