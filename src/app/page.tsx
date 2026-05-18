@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { fetchIssueDocentList } from "@/lib/issue-docent";
+// 홈 이슈 목록은 issue-docent 데이터를 기준으로 읽는다.
+import { fetchIssueDocentList } from "@/lib/issueDocent";
 import { matchesInterest } from "@/lib/issue-match";
 import type { Issue } from "@/types/jangdokdae";
 import { useInterestProfile } from "@/hooks/useInterestProfile";

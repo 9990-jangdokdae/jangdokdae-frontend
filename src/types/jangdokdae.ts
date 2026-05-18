@@ -72,7 +72,7 @@ export interface IssueSource {
 
 export interface Issue {
   id: string;
-  // Analyzer 상세/사이드바는 issue id가 아니라 cluster_id를 기준으로 조회한다.
+  // analyzer 상세/사이드바 조회용 cluster_id다.
   analysisClusterId?: string | null;
   title: string;
   collectedAt: string;
@@ -81,9 +81,9 @@ export interface Issue {
   companies: string[];
   keywords: string[];
   translation: JuriniTranslation;
-  // 요약 본문 아래에 붙는 analyzer 본문 섹션들이다.
+  // analyzer 본문 섹션 렌더링용 데이터다.
   analysisSections: AnalysisSection[];
-  // 우측 analyzer 사이드바에 쓰이는 보조 데이터다.
+  // analyzer 우측 사이드바 렌더링용 데이터다.
   sidebarContext: SidebarContext | null;
   quizzes: QuizQuestion[];
 }
