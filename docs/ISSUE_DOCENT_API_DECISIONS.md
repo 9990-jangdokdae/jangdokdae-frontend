@@ -92,7 +92,7 @@ interface SectorCompany {
 }
 ```
 
-목록 API에는 `explanation`, `articles`, `matched_terms`, `quizzes`를 포함하지 않는다.
+목록 API에는 `summary`, `articles`, `matched_terms`, `quizzes`를 포함하지 않는다.
 
 피드 카드에서 `title`, `teaser`, 메타 정보가 시각적으로 나뉘어 보이더라도 하나의 피드 아이템으로 취급한다.
 
@@ -139,7 +139,7 @@ interface IssueDocentDetailResponse {
   teaser: string;
   sector_companies: SectorCompanies[];
   article_count: number;
-  explanation: ExplanationSection[];
+  summary: SummaryContent;
   articles: SourceArticle[];
   quizzes: IssueDocentQuiz[];
   created_at: string;
@@ -148,20 +148,18 @@ interface IssueDocentDetailResponse {
 
 `articles`는 상세 본문에 직접 펼치지 않는다. 상세 헤더 영역의 `원문 보기` 버튼을 누르면 원본 기사 목록 팝업에서 제공한다.
 
-상세 화면은 `explanation` 본문을 먼저 렌더링하고, 그 아래에 `quizzes`를 렌더링한다.
+상세 화면은 `summary` 본문을 먼저 렌더링하고, 그 아래에 `quizzes`를 렌더링한다. 본문에는 별도 고정 heading을 붙이지 않는다.
 
-## 6. Explanation과 용어 매칭
+## 6. Summary와 용어 매칭
 
 `matched_terms`는 상세 응답의 문단 단위에 둔다.
 
 ```ts
-interface ExplanationSection {
-  section_type: string;
-  title: string;
-  paragraphs: ExplanationParagraph[];
+interface SummaryContent {
+  paragraphs: SummaryParagraph[];
 }
 
-interface ExplanationParagraph {
+interface SummaryParagraph {
   text: string;
   matched_terms: MatchedTerm[];
 }
@@ -175,6 +173,8 @@ interface MatchedTerm {
   end: number;
 }
 ```
+
+`summary`는 DB에 저장된 `issue_docent.summary` 텍스트를 API 서버가 문단 단위로 변환한 응답이다. `matched_terms`는 DB에 저장하지 않고, API 서버가 `issue_docent.summary`와 `stock_terms`를 비교해 만든다.
 
 프론트는 `start`, `end`를 기준으로 본문 안의 용어를 클릭 가능한 텍스트로 표시한다.
 
@@ -221,11 +221,11 @@ interface SourceArticle {
 백엔드 저장 구조:
 
 - `issue_docent.quizzes JSONB NOT NULL DEFAULT '[]'` 추가
-- 퀴즈는 `issue_docent.explanation` 생성 이후 별도 단계에서 생성
+- 퀴즈는 최종 `issue_docent.summary` 생성 이후 별도 단계에서 생성
 - 이슈당 객관식 퀴즈 2개 생성
 - 선택지는 4지선다
 - 퀴즈 생성 실패 시 `issue_docent` row를 저장하지 않고 클러스터 전체를 실패 처리
-- 퀴즈 LLM 입력은 `issue_docent.explanation`만 사용
+- 퀴즈 LLM 입력은 `issue_docent.summary`만 사용
 - `matched_terms`는 DB에 저장하지 않고 퀴즈 생성 입력으로만 사용
 - `stock_terms` 매칭 용어가 있으면 용어 이해 퀴즈 1개와 이슈 이해 퀴즈 1개를 생성
 - `stock_terms` 매칭 용어가 없으면 이슈 이해 퀴즈 2개를 생성
@@ -269,7 +269,7 @@ interface IssueDocentQuiz {
 - 피드 목록: `/api/v1/contents/issue-docent` 목록 API 소비
 - 상세 화면: `/api/v1/contents/issue-docent/{issue_docent_id}` 상세 API 소비
 - 기존 단일 뉴스 기반 `jurini_translation` 구조 제거
-- `explanation.sections[].paragraphs[]` 렌더링
+- `summary.paragraphs[]` 렌더링
 - 문단별 `matched_terms` 기반 용어 클릭 처리
 - 용어 팝업 추가
 - `원문 보기` 팝업 추가
