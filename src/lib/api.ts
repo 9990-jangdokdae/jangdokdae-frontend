@@ -1,4 +1,14 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export function resolveApiBase(apiBase: string | undefined, nodeEnv: string | undefined) {
+  if (apiBase) return apiBase;
+  if (nodeEnv !== "production") return "http://localhost:8000";
+
+  throw new Error("NEXT_PUBLIC_API_BASE_URL is required in production");
+}
+
+export const API_BASE = resolveApiBase(
+  process.env.NEXT_PUBLIC_API_BASE_URL,
+  process.env.NODE_ENV,
+);
 export const API_V1_BASE = `${API_BASE}/api/v1`;
 
 export class ApiRequestError extends Error {
