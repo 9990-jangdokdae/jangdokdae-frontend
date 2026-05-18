@@ -19,6 +19,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --import tsx --test src/lib/api.test.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build"
@@ -44,6 +45,7 @@
     "eslint-config-next": "16.2.1",
     "playwright": "^1.59.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.1",
     "typescript": "^5"
   }
 }

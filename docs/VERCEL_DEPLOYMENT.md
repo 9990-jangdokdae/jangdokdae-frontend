@@ -43,6 +43,8 @@
 | `NEXT_PUBLIC_API_BASE_URL` | `https://jangdokdae-server.onrender.com` | `Production`, `Preview` |
 | `NEXT_PUBLIC_APP_ENV` | `production` | 선택 |
 
+`Production` 빌드에서는 `NEXT_PUBLIC_API_BASE_URL`이 없으면 빌드가 실패합니다. 운영 배포가 실수로 `localhost` 백엔드 주소를 사용하지 않도록 막기 위한 안전장치입니다.
+
 ## 3. 배포 실행
 
 1. **Deploy**를 누릅니다.
