@@ -263,6 +263,68 @@ interface IssueDocentQuiz {
 - 별도 제출 버튼, 점수 저장, 랭킹은 현재 MVP 범위에서 제외한다.
 - 향후 학습 기록, 오답 저장, 사용자 진도 기능이 필요해지면 저장 방식을 별도 설계한다.
 
+## Analyzer 결합 `/issue-docent/[id]`
+
+Status: 백엔드 `구현됨` / 프론트 `구현됨`
+
+Issue Docent 상세는 기본 본문/용어/퀴즈를 `issue-docent` API에서 받고, 같은 상세 안에서 `cluster_id` 기준 analyzer 데이터를 추가로 결합한다.
+
+### API
+
+```http
+GET /api/v1/analysis/detail/{cluster_id}
+GET /api/v1/analysis/sidebar-context/{cluster_id}
+```
+
+### Response
+
+```ts
+interface AnalyzerDetailResponse {
+  cluster_id?: string | null;
+  analysis_summary?: {
+    analysis_sections?: AnalysisSection[];
+  };
+  sidebar_context?: AnalyzerSidebarContextResponse;
+}
+
+interface AnalyzerSidebarContextResponse {
+  related_companies: AnalyzerCompanyResponse[];
+  related_markets: AnalyzerMarketResponse[];
+  key_metrics: AnalyzerMetricResponse[];
+}
+
+interface AnalyzerCompanyResponse {
+  name: string;
+  ticker?: string | null;
+  sector?: string | null;
+  current_price?: string | null;
+  price_change_pct?: string | null;
+}
+
+interface AnalyzerMarketResponse {
+  name: string;
+  value?: string | null;
+  change_pct?: string | null;
+  summary?: string | null;
+}
+
+interface AnalyzerMetricResponse {
+  label: string;
+  value: string;
+  emphasis?: string | null;
+}
+```
+
+### 프론트 소비 규칙
+
+- `/issue-docent/[id]` 상세의 기본 데이터 fetch는 서버 컴포넌트에서 수행한다.
+- 상세 클라이언트 컴포넌트는 `IssueDocentDetailResponse.cluster_id`를 기준으로 analyzer detail/sidebar 데이터를 추가 조회한다.
+- analyzer API 응답 타입은 `src/types`에 둔다.
+- analyzer API 호출과 응답 변환은 `src/lib`에서 관리한다.
+- 컴포넌트는 analyzer payload 구조를 직접 해석하지 않고 변환된 UI 데이터만 렌더링한다.
+- analyzer 본문은 `analysis_sections`를 사용한다.
+- analyzer 사이드바는 `related_companies`, `related_markets`, `key_metrics`를 사용한다.
+
 ## Issue Docent 프론트 구현 규칙
 
 - 구현 순서는 API 타입/client 정리 후 목록과 상세 UI 연결 순으로 진행한다.

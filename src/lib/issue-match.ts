@@ -1,9 +1,11 @@
-import type { InterestProfile, Issue } from "@/types/jangdokdae";
+import type { IssueDocentListItem } from "@/types/issueDocent";
+import type { InterestProfile } from "@/types/jangdokdae";
 
-// 기존 관심사 기반 노출 UX를 analyzer UI 확장 이후에도 그대로 유지한다.
-export function matchesInterest(issue: Issue, profile: InterestProfile) {
+export function matchesInterest(issue: IssueDocentListItem, profile: InterestProfile) {
   return (
-    issue.sectors.some((sector) => profile.sectors.includes(sector)) ||
-    issue.companies.some((company) => profile.companies.includes(company))
+    issue.sector_companies.some((group) => group.sector && profile.sectors.includes(group.sector)) ||
+    issue.sector_companies.some((group) =>
+      group.companies.some((company) => profile.companies.includes(company.name)),
+    )
   );
 }

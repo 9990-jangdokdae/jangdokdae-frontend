@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, BookOpenCheck, Check, Cpu, ExternalLink, Gamepad2, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { InterestRail } from "@/components/InterestRail";
+import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { AppModal } from "@/components/ui/AppModal";
 import {
   fetchAnalyzerDetail,
+  fetchAnalyzerSidebarContext,
   formatIssueDocentDate,
   formatIssueDocentDateTime,
 } from "@/lib/issueDocent";
-import { apiFetch } from "@/lib/api";
 import type {
   AnalysisSection,
   KeyMetric,
@@ -22,7 +23,6 @@ import type {
   IssueDocentDetailResponse,
   IssueDocentQuiz,
   MatchedTerm,
-  SectorCompanies,
 } from "@/types/issueDocent";
 
 interface TermDefinition {
@@ -31,33 +31,10 @@ interface TermDefinition {
   category?: string;
 }
 
-function SectorCompaniesMeta({ groups }: { groups: SectorCompanies[] }) {
-  if (groups.length === 0) return null;
-
-  return (
-    <div className="mt-5 grid gap-3">
-      {groups.map((group, groupIndex) => (
-        <div
-          key={`${group.sector ?? "unknown"}-${groupIndex}`}
-          className="flex items-start gap-3 text-[14px]"
-        >
-          {group.sector && (
-            <span className="mt-1 min-w-20 font-semibold text-[#1d1d1f]">{group.sector}</span>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {group.companies.map((company, companyIndex) => (
-              <span
-                key={`${company.name}-${companyIndex}`}
-                className="rounded-full bg-[#f7f8fa] px-3 py-1.5 font-medium text-[#7a7a7a]"
-              >
-                {company.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+interface AnalyzerState {
+  clusterId: string | null;
+  analysisSections: AnalysisSection[];
+  sidebarContext: SidebarContext | null;
 }
 
 function splitParagraphByMatchedTerms(text: string, terms: MatchedTerm[]) {
@@ -114,7 +91,7 @@ function ParagraphWithTerms({
         return term ? (
           <button
             key={`${part.text}-${index}`}
-            className="rounded-[4px] bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
+            className="rounded-sm bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
             onClick={() =>
               onOpenTerm({
                 term: term.term,
@@ -152,7 +129,7 @@ function InlineTermsText({
           <button
             key={`${part.text}-${index}`}
             type="button"
-            className="rounded-[4px] bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
+            className="rounded-sm bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
             onClick={() => onOpenTerm(part.term!)}
           >
             {part.text}
@@ -226,7 +203,7 @@ function AnalysisCard({
   onOpenTerm: (term: TermDefinition) => void;
 }) {
   return (
-    <article className="rounded-[22px] border border-[#eceef2] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(20,20,19,0.04)]">
+    <article className="rounded-lg border border-[#e0e0e0] bg-white px-6 py-6">
       <h2 className="ko-title text-[26px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">{section.title}</h2>
       <InlineTermsText
         text={section.summary}
@@ -240,7 +217,7 @@ function AnalysisCard({
 
 function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
   return (
-    <div className="rounded-[18px] border border-[#eef1f5] bg-[#fbfcfd] px-4 py-2">
+    <div className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
@@ -271,7 +248,7 @@ function MetricItem({
   onOpenTerm: (term: TermDefinition) => void;
 }) {
   return (
-    <div className="rounded-[18px] border border-[#eef1f5] bg-[#ffffff] px-4 py-2.5">
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
       <p className="text-[12px] font-semibold text-[#7a7a7a]">{metric.label}</p>
       <p className="mt-1 text-[17px] font-semibold text-[#1d1d1f]">{metric.value}</p>
       {metric.emphasis && (
@@ -286,12 +263,6 @@ function MetricItem({
   );
 }
 
-function getMarketIcon(name: string) {
-  if (name.includes("게임")) return Gamepad2;
-  if (name.includes("반도체")) return Cpu;
-  return Activity;
-}
-
 function MarketItem({
   market,
   terms,
@@ -301,13 +272,20 @@ function MarketItem({
   terms: TermDefinition[];
   onOpenTerm: (term: TermDefinition) => void;
 }) {
-  const Icon = getMarketIcon(market.name);
+  const icon = market.name.includes("게임") ? (
+    <Gamepad2 className="h-4 w-4" />
+  ) : market.name.includes("반도체") ? (
+    <Cpu className="h-4 w-4" />
+  ) : (
+    <Activity className="h-4 w-4" />
+  );
+
   return (
-    <div className="rounded-[20px] border border-[#e8eef9] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-3 shadow-[0_8px_24px_rgba(45,108,223,0.06)]">
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#edf4ff] text-[#2d6cdf]">
-            <Icon className="h-4 w-4" />
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#f7f8fa] text-[#2d6cdf]">
+            {icon}
           </span>
           <p className="text-[12px] font-bold tracking-[0.08em] text-[#2d6cdf] uppercase">{market.name}</p>
         </div>
@@ -318,12 +296,14 @@ function MarketItem({
           </div>
         )}
       </div>
-      <InlineTermsText
-        text={market.summary}
-        terms={terms}
-        onOpenTerm={onOpenTerm}
-        className="ko-body mt-2 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-[#1f2430]"
-      />
+      {market.summary && (
+        <InlineTermsText
+          text={market.summary}
+          terms={terms}
+          onOpenTerm={onOpenTerm}
+          className="ko-body mt-2 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-[#1f2430]"
+        />
+      )}
     </div>
   );
 }
@@ -341,64 +321,9 @@ function SidebarCard({
   terms: TermDefinition[];
   onOpenTerm: (term: TermDefinition) => void;
 }) {
-  const motionRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const element = motionRef.current;
-    if (!element) return;
-
-    let frameId = 0;
-    let currentOffset = 0;
-    let targetOffset = 0;
-    let lastScrollY = window.scrollY;
-
-    const applyStyles = (offset: number) => {
-      const lift = Math.abs(offset);
-      element.style.transform = `translate3d(0, ${offset}px, 0)`;
-      element.style.boxShadow = `0 ${12 + lift * 1.8}px ${36 + lift * 4}px rgba(20,20,19,${0.05 + lift * 0.006})`;
-    };
-
-    const settle = () => {
-      currentOffset += (targetOffset - currentOffset) * 0.16;
-      targetOffset *= 0.86;
-      applyStyles(currentOffset);
-
-      if (Math.abs(currentOffset) > 0.1 || Math.abs(targetOffset) > 0.1) {
-        frameId = window.requestAnimationFrame(settle);
-      } else {
-        currentOffset = 0;
-        targetOffset = 0;
-        applyStyles(0);
-        frameId = 0;
-      }
-    };
-
-    const handleScroll = () => {
-      const nextScrollY = window.scrollY;
-      const delta = nextScrollY - lastScrollY;
-      lastScrollY = nextScrollY;
-      targetOffset = Math.max(-6, Math.min(6, delta * 0.18));
-
-      if (!frameId) {
-        frameId = window.requestAnimationFrame(settle);
-      }
-    };
-
-    applyStyles(0);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      if (frameId) window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
   return (
     <aside className="sticky top-24 w-[410px] self-start">
-      <div
-        ref={motionRef}
-        className="space-y-3 rounded-[28px] border border-[#e8ebf0] bg-white px-4 py-4 will-change-transform"
-      >
+      <div className="space-y-3 rounded-lg border border-[#e0e0e0] bg-white px-4 py-4">
         <section>
           <div className="grid gap-2.5">
             {companies.map((company) => <RelatedCompanyItem key={`${company.name}-${company.ticker ?? ""}`} company={company} />)}
@@ -442,10 +367,16 @@ export function IssueDocentDetailClient({
 }) {
   const [selectedTerm, setSelectedTerm] = useState<TermDefinition | null>(null);
   const [showArticles, setShowArticles] = useState(false);
-  // analyzer 본문 섹션 상태다.
-  const [analysisSections, setAnalysisSections] = useState<AnalysisSection[]>([]);
-  // analyzer 우측 사이드바 상태다.
-  const [sidebarContext, setSidebarContext] = useState<SidebarContext | null>(null);
+  const analyzerClusterId = String(issueDocent.cluster_id);
+  const [analyzerState, setAnalyzerState] = useState<AnalyzerState>({
+    clusterId: null,
+    analysisSections: [],
+    sidebarContext: null,
+  });
+  const analysisSections =
+    analyzerState.clusterId === analyzerClusterId ? analyzerState.analysisSections : [];
+  const sidebarContext =
+    analyzerState.clusterId === analyzerClusterId ? analyzerState.sidebarContext : null;
 
   const glossaryTerms = useMemo<TermDefinition[]>(() => {
     const seen = new Set<string>();
@@ -473,60 +404,33 @@ export function IssueDocentDetailClient({
     const controller = new AbortController();
 
     const loadAnalyzer = async () => {
-      try {
-        // analyzer 결합용 cluster_id다.
-        const clusterId = String(issueDocent.cluster_id);
-        const [analysisResult, sidebarResponse] = await Promise.allSettled([
-          fetchAnalyzerDetail(clusterId, controller.signal),
-          apiFetch(`/api/v1/analysis/sidebar-context/${clusterId}`, {
-            signal: controller.signal,
-            cache: "no-store",
-          }),
-        ]);
+      const nextState: AnalyzerState = {
+        clusterId: analyzerClusterId,
+        analysisSections: [],
+        sidebarContext: null,
+      };
 
-        if (analysisResult.status === "fulfilled") {
-          setAnalysisSections(analysisResult.value.analysisSections);
-          if (analysisResult.value.sidebarContext) {
-            setSidebarContext(analysisResult.value.sidebarContext);
+      try {
+        try {
+          const analyzerDetail = await fetchAnalyzerDetail(analyzerClusterId, controller.signal);
+          nextState.analysisSections = analyzerDetail.analysisSections;
+          nextState.sidebarContext = analyzerDetail.sidebarContext;
+          setAnalyzerState({ ...nextState });
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
           }
         }
 
-        if (sidebarResponse.status === "fulfilled" && sidebarResponse.value.ok) {
-          const payload = await sidebarResponse.value.json();
-          const liveRelatedCompanies = (payload?.related_companies ?? []).map((company: { name: string; ticker?: string; subtitle?: string; sector?: string; current_price?: string; currentPrice?: string; price_change_pct?: string; priceChangePct?: string }) => ({
-            name: company.name,
-            ticker: company.ticker,
-            subtitle: company.subtitle ?? company.sector,
-            currentPrice: company.current_price ?? company.currentPrice,
-            priceChangePct: company.price_change_pct ?? company.priceChangePct,
-          }));
-          const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string; summary?: string }) => ({
-            name: market.name,
-            value: market.value,
-            changePct: market.change_pct ?? market.changePct,
-            summary: market.summary ?? "",
-          }));
-          const liveMetrics = (payload?.key_metrics ?? []).map((metric: KeyMetric) => ({
-            label: metric.label,
-            value: metric.value,
-            emphasis: metric.emphasis,
-          }));
+        const liveSidebar = await fetchAnalyzerSidebarContext(
+          analyzerClusterId,
+          controller.signal,
+          nextState.sidebarContext,
+        );
 
-          // analyzer 사이드바 live 숫자 보강용 병합이다.
-          setSidebarContext((current) => ({
-            relatedCompanies: liveRelatedCompanies.length > 0 ? liveRelatedCompanies : (current?.relatedCompanies ?? []),
-            relatedMarkets:
-              liveRelatedMarkets.length > 0
-                ? liveRelatedMarkets.map((market: RelatedMarket) => ({
-                    ...market,
-                    summary:
-                      market.summary
-                      || current?.relatedMarkets.find((item: RelatedMarket) => item.name === market.name)?.summary
-                      || "",
-                  }))
-                : (current?.relatedMarkets ?? []),
-            keyMetrics: liveMetrics.length > 0 ? liveMetrics : (current?.keyMetrics ?? []),
-          }));
+        if (liveSidebar) {
+          nextState.sidebarContext = liveSidebar;
+          setAnalyzerState({ ...nextState });
         }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -538,7 +442,7 @@ export function IssueDocentDetailClient({
     void loadAnalyzer();
 
     return () => controller.abort();
-  }, [issueDocent.cluster_id]);
+  }, [analyzerClusterId]);
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
