@@ -67,3 +67,4 @@ npm run build
 
 - `docs/DESIGN.md`: 장독대 프론트엔드 디자인 가이드
 - `docs/API_SPEC.md`: 페이지별 API 명세서
+- `docs/VERCEL_DEPLOYMENT.md`: Vercel 배포 가이드
