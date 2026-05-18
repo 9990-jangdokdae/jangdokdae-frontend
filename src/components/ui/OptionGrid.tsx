@@ -18,24 +18,26 @@ export function OptionGrid({
   onToggle,
   variant = "card",
   columns = 2,
+  theme = "light",
+  className,
 }: {
   options: InterestOption[];
   selected: string[];
   onToggle: (id: string) => void;
   variant?: "card" | "chip";
   columns?: 2 | 3;
+  theme?: "light" | "dark";
+  className?: string;
 }) {
   if (variant === "chip") {
     const colClass = columns === 3 ? "grid-cols-3" : "grid-cols-2";
     const spanClass = columns === 3 ? "col-span-3" : "col-span-2";
 
-    // sector을 기준으로 그룹 헤더 + 칩을 flat array로 구성
     const nodes: ReactNode[] = [];
     let lastGroup = "";
     let buttonIndex = 0;
 
     for (const option of options) {
-      // 그룹 헤더 (sector이 있고 이전과 다를 때만)
       if (option.sector && option.sector !== lastGroup) {
         lastGroup = option.sector;
         nodes.push(
@@ -43,10 +45,12 @@ export function OptionGrid({
             key={`group-${option.sector}`}
             className={`${spanClass} flex items-center gap-2.5 pt-5 first:pt-0`}
           >
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9a8a7e]">
+            <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+              theme === "dark" ? "text-[rgba(245,237,232,0.35)]" : "text-[#9a8a7e]"
+            }`}>
               {option.sector}
             </span>
-            <div className="h-px flex-1 bg-[#e0d8cf]" />
+            <div className={`h-px flex-1 ${theme === "dark" ? "bg-white/10" : "bg-[#e0d8cf]"}`} />
           </div>,
         );
       }
@@ -54,32 +58,43 @@ export function OptionGrid({
       const idx = buttonIndex++;
       const active = selected.includes(option.id);
 
+      const cardClass = theme === "dark"
+        ? `flex h-full flex-col rounded-xl border px-3 py-2.5 text-left transition-all duration-150 ${
+            active
+              ? "border-[#c96442]/60 bg-[#c96442]/[0.15] shadow-[0_0_0_1px_rgba(201,100,66,0.25)]"
+              : "border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2]"
+          }`
+        : `flex h-full flex-col rounded-xl border px-4 py-4 text-left transition-all duration-150 ${
+            active
+              ? "border-[#c96442] bg-[#fff1ec] shadow-[0_0_0_1px_#c96442]"
+              : "border-[#e8e2da] bg-white hover:border-[#c96442]/50 hover:bg-[#fff8f6]"
+          }`;
+
       nodes.push(
         <button
           key={option.id}
           style={{ animation: `chip-in 220ms ease-out ${idx * 22}ms both` }}
-          className={`flex h-full flex-col rounded-xl border px-4 py-4 text-left transition-all duration-150 ${
-            active
-              ? "border-[#c96442] bg-[#fff1ec] shadow-[0_0_0_1px_#c96442]"
-              : "border-[#e8e2da] bg-white hover:border-[#c96442]/50 hover:bg-[#fff8f6]"
-          }`}
+          className={cardClass}
           onClick={() => onToggle(option.id)}
           type="button"
         >
-          <span
-            className={`flex items-center gap-1.5 text-[13px] font-semibold leading-tight ${
-              active ? "text-[#c96442]" : "text-[#1d1d1f]"
-            }`}
-          >
-            {active && <span className="text-[11px]">✓</span>}
+          {option.icon && (
+            <span className="mb-1.5 block text-[20px] leading-none">{option.icon}</span>
+          )}
+          <span className={`flex items-center gap-1.5 text-[13px] font-semibold leading-tight ${
+            theme === "dark"
+              ? active ? "text-[#ff9b78]" : "text-[#f5ede8]"
+              : active ? "text-[#c96442]" : "text-[#1d1d1f]"
+          }`}>
+            {!option.icon && active && <span className="text-[11px]">✓</span>}
             {option.label}
           </span>
           {option.description && (
-            <span
-              className={`mt-1 text-[12px] leading-snug ${
-                active ? "text-[#c96442]/70" : "text-[#9a9a9a]"
-              }`}
-            >
+            <span className={`mt-1 text-[11px] leading-snug ${
+              theme === "dark"
+                ? active ? "text-[rgba(255,155,120,0.7)]" : "text-[rgba(245,237,232,0.45)]"
+                : active ? "text-[#c96442]/70" : "text-[#9a9a9a]"
+            }`}>
               {option.description}
             </span>
           )}
@@ -87,8 +102,9 @@ export function OptionGrid({
       );
     }
 
+    const gapY = theme === "dark" ? "gap-y-2" : "gap-y-3";
     return (
-      <div className={`grid ${colClass} items-stretch gap-x-2.5 gap-y-3`}>{nodes}</div>
+      <div className={`grid ${colClass} items-stretch gap-x-2.5 ${gapY} ${className ?? ""}`}>{nodes}</div>
     );
   }
 
