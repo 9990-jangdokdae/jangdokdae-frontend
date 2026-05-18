@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Star, X } from "lucide-react";
-import { companyOptions, sectorOptions } from "@/lib/jangdokdae-data";
+import { companyOptions } from "@/lib/jangdokdaeData";
+import { useSectors } from "@/hooks/useSectors";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { toggleItem } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +17,7 @@ function InterestEditor({
   profile: InterestProfile;
   onChange: (profile: InterestProfile) => void;
 }) {
+  const sectorOptions = useSectors();
   return (
     <div className="space-y-7">
       <section>

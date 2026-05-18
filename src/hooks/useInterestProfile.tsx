@@ -1,18 +1,26 @@
 "use client";
 
 /**
- * 관심 프로필(섹터·종목) 상태 관리 훅
+ * 관심 프로필(섹터·종목) 상태 관리 훅 및 Provider
  *
  * - 로그인: 마운트 시 서버에서 로드, 저장 시 서버 + localStorage 동기화
  * - 비로그인: localStorage만 사용
  * - 로그아웃: localStorage 클리어 (공유 기기 보호)
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { InterestProfile } from "@/types/jangdokdae";
 import { apiFetch } from "@/lib/api";
-import { defaultInterestProfile, interestStorageKey } from "@/lib/jangdokdae-data";
+import { defaultInterestProfile, interestStorageKey } from "@/lib/jangdokdaeData";
 import { useAuth } from "@/hooks/useAuth";
+
+interface InterestProfileContextValue {
+  profile: InterestProfile;
+  saveProfile: (next: InterestProfile) => Promise<void>;
+  isLoading: boolean;
+}
+
+const InterestProfileContext = createContext<InterestProfileContextValue | null>(null);
 
 function readLocalProfile(): InterestProfile {
   try {
@@ -32,7 +40,7 @@ function clearLocalProfile(): void {
   window.localStorage.removeItem(interestStorageKey);
 }
 
-export function useInterestProfile() {
+export function InterestProfileProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,38 +49,62 @@ export function useInterestProfile() {
   useEffect(() => {
     if (authLoading) return;
 
-    const prev = prevIsLoggedIn.current;
-    prevIsLoggedIn.current = isLoggedIn;
+    let cancelled = false;
 
-    // 로그아웃 전환 시 localStorage 클리어
-    if (prev === true && !isLoggedIn) {
-      clearLocalProfile();
-      setProfile(defaultInterestProfile);
-      setIsLoading(false);
-      return;
-    }
+    async function loadProfile() {
+      const prev = prevIsLoggedIn.current;
+      prevIsLoggedIn.current = isLoggedIn;
 
-    if (isLoggedIn) {
-      apiFetch("/user/profile")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data: { sectors: string[]; companies: string[] } | null) => {
+      // 로그아웃 전환 시 localStorage 클리어
+      if (prev === true && !isLoggedIn) {
+        clearLocalProfile();
+        if (!cancelled) {
+          setProfile(defaultInterestProfile);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (isLoggedIn) {
+        try {
+          const response = await apiFetch("/api/v1/user/profile");
+          const data = response.ok
+            ? ((await response.json()) as { sectors: string[]; companies: string[] })
+            : null;
+          if (cancelled) return;
+
           if (data) {
-            const serverProfile: InterestProfile = { sectors: data.sectors, companies: data.companies };
+            const serverProfile: InterestProfile = {
+              sectors: data.sectors,
+              companies: data.companies,
+            };
             setProfile(serverProfile);
             writeLocalProfile(serverProfile);
           } else {
             setProfile(readLocalProfile());
           }
-        })
-        .catch((err) => {
+        } catch (err) {
+          if (cancelled) return;
           console.error("[InterestProfile] 서버 프로필 로드 실패:", err);
           setProfile(readLocalProfile());
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setProfile(readLocalProfile());
-      setIsLoading(false);
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        const localProfile = readLocalProfile();
+        if (!cancelled) {
+          setProfile(localProfile);
+          setIsLoading(false);
+        }
+      }
     }
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, authLoading]);
 
   /**
@@ -85,7 +117,7 @@ export function useInterestProfile() {
       writeLocalProfile(next);
 
       if (isLoggedIn) {
-        const res = await apiFetch("/user/profile", {
+        const res = await apiFetch("/api/v1/user/profile", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sectors: next.sectors, companies: next.companies }),
@@ -101,5 +133,15 @@ export function useInterestProfile() {
     [isLoggedIn],
   );
 
-  return { profile, saveProfile, isLoading };
+  return (
+    <InterestProfileContext.Provider value={{ profile, saveProfile, isLoading }}>
+      {children}
+    </InterestProfileContext.Provider>
+  );
+}
+
+export function useInterestProfile() {
+  const ctx = useContext(InterestProfileContext);
+  if (!ctx) throw new Error("useInterestProfile must be used within InterestProfileProvider");
+  return ctx;
 }

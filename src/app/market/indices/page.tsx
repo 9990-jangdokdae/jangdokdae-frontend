@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { InterestRail } from "@/components/InterestRail";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "마켓 정보 | 장독대",
@@ -91,8 +90,7 @@ function IndexCard({ index }: { index: MarketIndex }) {
 export default function MarketIndicesPage() {
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <AuthHeader activeIndex={2} />
-      <InterestRail />
+      <Header activeIndex={2} />
 
       <main className="mx-[100px] w-[1176px] bg-[#ffffff] pb-24 pt-8">
         <section className="grid grid-cols-2 gap-4 py-8">

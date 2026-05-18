@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Activity, BookOpenCheck, Check, Cpu, Gamepad2, X } from "lucide-react";
 import { InterestRail } from "@/components/InterestRail";
-import { AuthHeader } from "@/components/AuthHeader";
+import { Header } from "@/components/Header";
 import { fetchAnalyzerDetail, fetchIssueDocentDetail } from "@/lib/issue-docent";
 import { apiFetch } from "@/lib/api";
 import type {
@@ -537,7 +537,7 @@ export function MarketVoiceDetailClient() {
   if (isLoading) {
     return (
       <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-        <AuthHeader activeIndex={1} />
+        <Header activeIndex={1} />
         <InterestRail />
         <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
           <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
@@ -552,7 +552,7 @@ export function MarketVoiceDetailClient() {
   if (!issue) {
     return (
       <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-        <AuthHeader activeIndex={1} />
+        <Header activeIndex={1} />
         <InterestRail />
         <main className="mx-[120px] w-[920px] bg-[#ffffff] pb-24 pt-16">
           <section className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] p-8">
@@ -573,7 +573,7 @@ export function MarketVoiceDetailClient() {
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-[#ffffff] text-[#1d1d1f]">
-      <AuthHeader activeIndex={1} />
+      <Header activeIndex={1} />
       <InterestRail />
 
       <main className="mx-[100px] w-[1220px] bg-[#ffffff] pb-24 pt-8">

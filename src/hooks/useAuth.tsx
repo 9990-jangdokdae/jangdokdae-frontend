@@ -26,8 +26,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * 앱 전체에 로그인 상태를 공급하는 Provider.
  * app/layout.tsx 최상단에 마운트해 모든 페이지에서 useAuth()를 사용
  *
- * - 마운트 시: /auth/me 호출 → JWT 쿠키로 현재 사용자 확인
- * - 로그아웃 시: /auth/logout 호출 → 쿠키 삭제 후 상태 초기화
+ * - 마운트 시: /api/v1/auth/me 호출 → JWT 쿠키로 현재 사용자 확인
+ * - 로그아웃 시: /api/v1/auth/logout 호출 → 쿠키 삭제 후 상태 초기화
  * - 로그인 모달: showModal 상태로 LoginModal 표시 여부 제어
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -36,17 +36,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    apiFetch("/auth/me")
+    apiFetch("/api/v1/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: User | null) => setUser(data))
-      .catch((err) => console.error("[Auth] /auth/me 실패:", err))
+      .catch((err) => console.error("[Auth] /api/v1/auth/me 실패:", err))
       .finally(() => setIsLoading(false));
   }, []);
 
-  /** 백엔드 /auth/logout을 호출해 httpOnly 쿠키를 삭제하고 로컬 상태를 초기화 */
+  /** 백엔드 /api/v1/auth/logout을 호출해 httpOnly 쿠키를 삭제하고 로컬 상태를 초기화 */
   const logout = async () => {
-    await apiFetch("/auth/logout", { method: "POST" })
-      .catch((err) => console.error("[Auth] /auth/logout 실패:", err));
+    await apiFetch("/api/v1/auth/logout", { method: "POST" })
+      .catch((err) => console.error("[Auth] /api/v1/auth/logout 실패:", err));
     setUser(null);
   };
 
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * 반환값:
  *   user          - 로그인한 사용자 정보 (비로그인 시 null)
  *   isLoggedIn    - 로그인 여부
- *   isLoading     - /auth/me 응답 대기 중 여부
+ *   isLoading     - /api/v1/auth/me 응답 대기 중 여부
  *   openLoginModal - 로그인 모달 열기
  *   logout        - 로그아웃
  */
