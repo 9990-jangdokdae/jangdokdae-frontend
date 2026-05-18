@@ -492,11 +492,11 @@ export function MarketVoiceDetailClient() {
             currentPrice: company.current_price ?? company.currentPrice,
             priceChangePct: company.price_change_pct ?? company.priceChangePct,
           }));
-          const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string }) => ({
+          const liveRelatedMarkets = (payload?.related_markets ?? []).map((market: { name: string; value?: string; change_pct?: string; changePct?: string; summary?: string }) => ({
             name: market.name,
             value: market.value,
             changePct: market.change_pct ?? market.changePct,
-            summary: "",
+            summary: market.summary ?? "",
           }));
           const liveMetrics = (payload?.key_metrics ?? []).map((metric: KeyMetric) => ({
             label: metric.label,
@@ -507,7 +507,16 @@ export function MarketVoiceDetailClient() {
           // 초기 sidebarContext가 없어도 live 응답만으로 바로 렌더될 수 있게 유지한다.
           setSidebarContext((current) => ({
             relatedCompanies: liveRelatedCompanies.length > 0 ? liveRelatedCompanies : (current?.relatedCompanies ?? []),
-            relatedMarkets: liveRelatedMarkets.length > 0 ? liveRelatedMarkets : (current?.relatedMarkets ?? []),
+            relatedMarkets:
+              liveRelatedMarkets.length > 0
+                ? liveRelatedMarkets.map((market: RelatedMarket) => ({
+                    ...market,
+                    summary:
+                      market.summary
+                      || current?.relatedMarkets.find((item: RelatedMarket) => item.name === market.name)?.summary
+                      || "",
+                  }))
+                : (current?.relatedMarkets ?? []),
             keyMetrics: liveMetrics.length > 0 ? liveMetrics : (current?.keyMetrics ?? []),
           }));
         }
