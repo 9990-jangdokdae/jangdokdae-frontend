@@ -90,4 +90,6 @@ export interface User {
   id: string;
   nickname: string;
   provider: "kakao" | "google";
+  interest_sectors: string[];
+  interest_companies: string[];
 }

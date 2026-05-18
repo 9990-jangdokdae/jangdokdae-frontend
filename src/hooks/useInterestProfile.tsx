@@ -41,7 +41,7 @@ function clearLocalProfile(): void {
 }
 
 export function InterestProfileProvider({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<InterestProfile>(defaultInterestProfile);
   const [isLoading, setIsLoading] = useState(true);
   const prevIsLoggedIn = useRef<boolean | null>(null);
@@ -49,63 +49,23 @@ export function InterestProfileProvider({ children }: { children: React.ReactNod
   useEffect(() => {
     if (authLoading) return;
 
-    let cancelled = false;
+    const prev = prevIsLoggedIn.current;
+    prevIsLoggedIn.current = isLoggedIn;
 
-    async function loadProfile() {
-      const prev = prevIsLoggedIn.current;
-      prevIsLoggedIn.current = isLoggedIn;
-
+    if (isLoggedIn && user) {
+      const serverProfile: InterestProfile = {
+        sectors: user.interest_sectors,
+        companies: user.interest_companies,
+      };
+      setProfile(serverProfile);
+      writeLocalProfile(serverProfile);
+    } else {
       // 로그아웃 전환 시 localStorage 클리어
-      if (prev === true && !isLoggedIn) {
-        clearLocalProfile();
-        if (!cancelled) {
-          setProfile(defaultInterestProfile);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      if (isLoggedIn) {
-        try {
-          const response = await apiFetch("/api/v1/user/profile");
-          const data = response.ok
-            ? ((await response.json()) as { sectors: string[]; companies: string[] })
-            : null;
-          if (cancelled) return;
-
-          if (data) {
-            const serverProfile: InterestProfile = {
-              sectors: data.sectors,
-              companies: data.companies,
-            };
-            setProfile(serverProfile);
-            writeLocalProfile(serverProfile);
-          } else {
-            setProfile(readLocalProfile());
-          }
-        } catch (err) {
-          if (cancelled) return;
-          console.error("[InterestProfile] 서버 프로필 로드 실패:", err);
-          setProfile(readLocalProfile());
-        } finally {
-          if (!cancelled) {
-            setIsLoading(false);
-          }
-        }
-      } else {
-        const localProfile = readLocalProfile();
-        if (!cancelled) {
-          setProfile(localProfile);
-          setIsLoading(false);
-        }
-      }
+      if (prev === true) clearLocalProfile();
+      setProfile(readLocalProfile());
     }
-
-    void loadProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn, authLoading]);
+    setIsLoading(false);
+  }, [isLoggedIn, authLoading, user]);
 
   /**
    * 관심 프로필을 저장한다.
