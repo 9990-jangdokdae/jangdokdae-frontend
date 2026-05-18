@@ -3,6 +3,7 @@ export interface InterestOption {
   label: string;
   description?: string;
   sector?: string;
+  icon?: string;
 }
 
 export interface InterestProfile {

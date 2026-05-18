@@ -6,11 +6,6 @@ import { InterestProfileProvider } from "@/hooks/useInterestProfile";
 export const metadata: Metadata = {
   title: "장독대 - 시장 독해를 대신 해드립니다",
   description: "주린이를 위한 시장 이슈 번역과 퀴즈",
-  icons: {
-    // todo: 아이콘 추가
-    // icon: "/images/moneytoring/site/favicon.ico",
-    // apple: "/images/moneytoring/site/favicon/apple-icon-180x180.png",
-  },
 };
 
 export default function RootLayout({
