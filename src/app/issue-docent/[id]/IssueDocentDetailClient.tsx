@@ -1,45 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpenCheck, Check, ExternalLink, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, BookOpenCheck, Check, Cpu, ExternalLink, Gamepad2, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { InterestRail } from "@/components/InterestRail";
+import { SectorCompaniesMeta } from "@/components/SectorCompaniesMeta";
 import { AppModal } from "@/components/ui/AppModal";
-import { formatIssueDocentDate, formatIssueDocentDateTime } from "@/lib/issueDocent";
+import {
+  fetchAnalyzerDetail,
+  fetchAnalyzerSidebarContext,
+  formatIssueDocentDate,
+  formatIssueDocentDateTime,
+} from "@/lib/issueDocent";
+import type {
+  AnalysisSection,
+  KeyMetric,
+  RelatedCompany,
+  RelatedMarket,
+  SidebarContext,
+} from "@/types/jangdokdae";
 import type {
   IssueDocentDetailResponse,
   IssueDocentQuiz,
   MatchedTerm,
-  SectorCompanies,
 } from "@/types/issueDocent";
 
-function SectorCompaniesMeta({ groups }: { groups: SectorCompanies[] }) {
-  if (groups.length === 0) return null;
+interface TermDefinition {
+  term: string;
+  definition: string;
+  category?: string;
+}
 
-  return (
-    <div className="mt-5 grid gap-3">
-      {groups.map((group, groupIndex) => (
-        <div
-          key={`${group.sector ?? "unknown"}-${groupIndex}`}
-          className="flex items-start gap-3 text-[14px]"
-        >
-          {group.sector && (
-            <span className="mt-1 min-w-20 font-semibold text-[#1d1d1f]">{group.sector}</span>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {group.companies.map((company, companyIndex) => (
-              <span
-                key={`${company.name}-${companyIndex}`}
-                className="rounded-full bg-[#f7f8fa] px-3 py-1.5 font-medium text-[#7a7a7a]"
-              >
-                {company.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+interface AnalyzerState {
+  clusterId: string | null;
+  analysisSections: AnalysisSection[];
+  sidebarContext: SidebarContext | null;
 }
 
 function splitParagraphByMatchedTerms(text: string, terms: MatchedTerm[]) {
@@ -66,6 +61,19 @@ function splitParagraphByMatchedTerms(text: string, terms: MatchedTerm[]) {
   return parts.length > 0 ? parts : [{ text, term: null }];
 }
 
+function splitParagraphByTerms(paragraph: string, terms: TermDefinition[]) {
+  const sortedTerms = [...terms].sort((a, b) => b.term.length - a.term.length);
+  const escapedTerms = sortedTerms.map((term) => term.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+  if (escapedTerms.length === 0) return [{ text: paragraph, term: null as TermDefinition | null }];
+
+  const matcher = new RegExp(`(${escapedTerms.join("|")})`, "g");
+  return paragraph.split(matcher).filter(Boolean).map((text) => ({
+    text,
+    term: sortedTerms.find((candidate) => candidate.term === text) ?? null,
+  }));
+}
+
 function ParagraphWithTerms({
   text,
   terms,
@@ -73,7 +81,7 @@ function ParagraphWithTerms({
 }: {
   text: string;
   terms: MatchedTerm[];
-  onOpenTerm: (term: MatchedTerm) => void;
+  onOpenTerm: (term: TermDefinition) => void;
 }) {
   return (
     <p className="ko-body text-[17px] leading-8 text-[#1d1d1f]">
@@ -83,8 +91,14 @@ function ParagraphWithTerms({
         return term ? (
           <button
             key={`${part.text}-${index}`}
-            className="rounded-[4px] bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
-            onClick={() => onOpenTerm(term)}
+            className="rounded-sm bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
+            onClick={() =>
+              onOpenTerm({
+                term: term.term,
+                definition: term.definition,
+                category: term.category,
+              })
+            }
             type="button"
           >
             {part.text}
@@ -94,6 +108,37 @@ function ParagraphWithTerms({
         );
       })}
     </p>
+  );
+}
+
+function InlineTermsText({
+  text,
+  terms,
+  onOpenTerm,
+  className,
+}: {
+  text: string;
+  terms: TermDefinition[];
+  onOpenTerm: (term: TermDefinition) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {splitParagraphByTerms(text, terms).map((part, index) =>
+        part.term ? (
+          <button
+            key={`${part.text}-${index}`}
+            type="button"
+            className="rounded-sm bg-[#fff1ec] px-1 font-semibold text-[#b65335] underline decoration-[#c96442]/45 decoration-dotted underline-offset-4 transition hover:bg-[#f7ded5] focus:outline-none focus:ring-2 focus:ring-[#c96442]/35"
+            onClick={() => onOpenTerm(part.term!)}
+          >
+            {part.text}
+          </button>
+        ) : (
+          <span key={`${part.text}-${index}`}>{part.text}</span>
+        ),
+      )}
+    </div>
   );
 }
 
@@ -148,75 +193,344 @@ function QuizCard({ quiz }: { quiz: IssueDocentQuiz }) {
   );
 }
 
+function AnalysisCard({
+  section,
+  terms,
+  onOpenTerm,
+}: {
+  section: AnalysisSection;
+  terms: TermDefinition[];
+  onOpenTerm: (term: TermDefinition) => void;
+}) {
+  return (
+    <article className="rounded-lg border border-[#e0e0e0] bg-white px-6 py-6">
+      <h2 className="ko-title text-[26px] font-semibold tracking-[-0.02em] text-[#1d1d1f]">{section.title}</h2>
+      <InlineTermsText
+        text={section.summary}
+        terms={terms}
+        onOpenTerm={onOpenTerm}
+        className="ko-body mt-4 text-[16px] leading-8 text-[#35363a]"
+      />
+    </article>
+  );
+}
+
+function RelatedCompanyItem({ company }: { company: RelatedCompany }) {
+  return (
+    <div className="rounded-lg border border-[#e0e0e0] bg-[#fbfcfd] px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold text-[#1d1d1f]">{company.name}</p>
+          {(company.ticker || company.subtitle) && (
+            <p className="mt-0.5 break-keep text-[12px] leading-5 text-[#7a7a7a]">
+              {[company.ticker, company.subtitle].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
+        {(company.currentPrice || company.priceChangePct) && (
+          <div className="shrink-0 text-right">
+            {company.currentPrice && <p className="whitespace-nowrap text-[14px] font-semibold text-[#1d1d1f]">{company.currentPrice}</p>}
+            {company.priceChangePct && <p className="mt-0.5 whitespace-nowrap text-[12px] font-semibold text-[#2d6cdf]">{company.priceChangePct}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricItem({
+  metric,
+  terms,
+  onOpenTerm,
+}: {
+  metric: KeyMetric;
+  terms: TermDefinition[];
+  onOpenTerm: (term: TermDefinition) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
+      <p className="text-[12px] font-semibold text-[#7a7a7a]">{metric.label}</p>
+      <p className="mt-1 text-[17px] font-semibold text-[#1d1d1f]">{metric.value}</p>
+      {metric.emphasis && (
+        <InlineTermsText
+          text={metric.emphasis}
+          terms={terms}
+          onOpenTerm={onOpenTerm}
+          className="mt-0.5 text-[12px] font-medium leading-5 text-[#2d6cdf]"
+        />
+      )}
+    </div>
+  );
+}
+
+function MarketItem({
+  market,
+  terms,
+  onOpenTerm,
+}: {
+  market: RelatedMarket;
+  terms: TermDefinition[];
+  onOpenTerm: (term: TermDefinition) => void;
+}) {
+  const icon = market.name.includes("게임") ? (
+    <Gamepad2 className="h-4 w-4" />
+  ) : market.name.includes("반도체") ? (
+    <Cpu className="h-4 w-4" />
+  ) : (
+    <Activity className="h-4 w-4" />
+  );
+
+  return (
+    <div className="rounded-lg border border-[#e0e0e0] bg-white px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#f7f8fa] text-[#2d6cdf]">
+            {icon}
+          </span>
+          <p className="text-[12px] font-bold tracking-[0.08em] text-[#2d6cdf] uppercase">{market.name}</p>
+        </div>
+        {(market.value || market.changePct) && (
+          <div className="shrink-0 text-right">
+            {market.value && <p className="whitespace-nowrap text-[15px] font-semibold text-[#1d1d1f]">{market.value}</p>}
+            {market.changePct && <p className="mt-1 whitespace-nowrap text-[13px] font-bold text-[#2d6cdf]">{market.changePct}</p>}
+          </div>
+        )}
+      </div>
+      {market.summary && (
+        <InlineTermsText
+          text={market.summary}
+          terms={terms}
+          onOpenTerm={onOpenTerm}
+          className="ko-body mt-2 text-[15px] font-semibold leading-6 tracking-[-0.01em] text-[#1f2430]"
+        />
+      )}
+    </div>
+  );
+}
+
+function SidebarCard({
+  companies,
+  markets,
+  metrics,
+  terms,
+  onOpenTerm,
+}: {
+  companies: RelatedCompany[];
+  markets: RelatedMarket[];
+  metrics: KeyMetric[];
+  terms: TermDefinition[];
+  onOpenTerm: (term: TermDefinition) => void;
+}) {
+  return (
+    <aside className="sticky top-24 w-[410px] self-start">
+      <div className="space-y-3 rounded-lg border border-[#e0e0e0] bg-white px-4 py-4">
+        <section>
+          <div className="grid gap-2.5">
+            {companies.map((company) => <RelatedCompanyItem key={`${company.name}-${company.ticker ?? ""}`} company={company} />)}
+          </div>
+        </section>
+
+        <section className="border-t border-[#eef1f5] pt-3.5">
+          <div className="grid gap-2.5">
+            {markets.map((market) => (
+              <MarketItem
+                key={`${market.name}-${market.summary}`}
+                market={market}
+                terms={terms}
+                onOpenTerm={onOpenTerm}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-[#eef1f5] pt-3.5">
+          <div className="grid gap-2.5">
+            {metrics.map((metric) => (
+              <MetricItem
+                key={`${metric.label}-${metric.value}`}
+                metric={metric}
+                terms={terms}
+                onOpenTerm={onOpenTerm}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+    </aside>
+  );
+}
+
 export function IssueDocentDetailClient({
   issueDocent,
 }: {
   issueDocent: IssueDocentDetailResponse;
 }) {
-  const [selectedTerm, setSelectedTerm] = useState<MatchedTerm | null>(null);
+  const [selectedTerm, setSelectedTerm] = useState<TermDefinition | null>(null);
   const [showArticles, setShowArticles] = useState(false);
+  const analyzerClusterId = String(issueDocent.cluster_id);
+  const [analyzerState, setAnalyzerState] = useState<AnalyzerState>({
+    clusterId: null,
+    analysisSections: [],
+    sidebarContext: null,
+  });
+  const analysisSections =
+    analyzerState.clusterId === analyzerClusterId ? analyzerState.analysisSections : [];
+  const sidebarContext =
+    analyzerState.clusterId === analyzerClusterId ? analyzerState.sidebarContext : null;
+
+  const glossaryTerms = useMemo<TermDefinition[]>(() => {
+    const seen = new Set<string>();
+    const terms: TermDefinition[] = [];
+
+    for (const section of issueDocent.explanation ?? []) {
+      for (const paragraph of section.paragraphs ?? []) {
+        for (const term of paragraph.matched_terms ?? []) {
+          const key = `${term.term}::${term.definition}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          terms.push({
+            term: term.term,
+            definition: term.definition,
+            category: term.category,
+          });
+        }
+      }
+    }
+
+    return terms;
+  }, [issueDocent.explanation]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadAnalyzer = async () => {
+      const nextState: AnalyzerState = {
+        clusterId: analyzerClusterId,
+        analysisSections: [],
+        sidebarContext: null,
+      };
+
+      try {
+        try {
+          const analyzerDetail = await fetchAnalyzerDetail(analyzerClusterId, controller.signal);
+          nextState.analysisSections = analyzerDetail.analysisSections;
+          nextState.sidebarContext = analyzerDetail.sidebarContext;
+          setAnalyzerState({ ...nextState });
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+        }
+
+        const liveSidebar = await fetchAnalyzerSidebarContext(
+          analyzerClusterId,
+          controller.signal,
+          nextState.sidebarContext,
+        );
+
+        if (liveSidebar) {
+          nextState.sidebarContext = liveSidebar;
+          setAnalyzerState({ ...nextState });
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    };
+
+    void loadAnalyzer();
+
+    return () => controller.abort();
+  }, [analyzerClusterId]);
 
   return (
     <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
       <InterestRail />
 
-      <main className="mx-[100px] w-[1176px] bg-white pb-24 pt-8">
-        <article className="w-[920px]">
-          <header className="border-b border-[#e0e0e0] pb-8">
-            <p className="flex items-center gap-2 text-[14px] font-semibold text-[#c96442]">
-              <BookOpenCheck className="h-4 w-4" />
-              이슈 도슨트
-            </p>
-            <div className="mt-4 flex items-start justify-between gap-6">
-              <h1 className="ko-title text-[34px] font-normal leading-[1.15] text-[#1d1d1f]">
-                {issueDocent.title}
-              </h1>
-              <button
-                className="mt-1 h-10 shrink-0 rounded-lg border border-[#e0e0e0] bg-white px-4 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
-                onClick={() => setShowArticles(true)}
-                type="button"
-              >
-                원문 보기
-              </button>
-            </div>
-            <SectorCompaniesMeta groups={issueDocent.sector_companies} />
-            <p className="mt-5 text-[13px] font-medium text-[#7a7a7a]">
-              기사 {issueDocent.article_count}개 기반 ·{" "}
-              {formatIssueDocentDateTime(issueDocent.created_at)}
-            </p>
-          </header>
+      <main className="mx-[100px] w-[1220px] bg-white pb-24 pt-8">
+        <div className="flex items-start gap-10">
+          <article className="w-[770px]">
+            <header className="border-b border-[#e0e0e0] pb-8">
+              <p className="flex items-center gap-2 text-[14px] font-semibold text-[#c96442]">
+                <BookOpenCheck className="h-4 w-4" />
+                이슈 도슨트
+              </p>
+              <div className="mt-4 flex items-start justify-between gap-6">
+                <h1 className="ko-title text-[34px] font-normal leading-[1.15] text-[#1d1d1f]">
+                  {issueDocent.title}
+                </h1>
+                <button
+                  className="mt-1 h-10 shrink-0 rounded-lg border border-[#e0e0e0] bg-white px-4 text-[14px] font-semibold text-[#1d1d1f] transition hover:border-[#c96442] hover:text-[#b65335]"
+                  onClick={() => setShowArticles(true)}
+                  type="button"
+                >
+                  원문 보기
+                </button>
+              </div>
+              <SectorCompaniesMeta groups={issueDocent.sector_companies} />
+              <p className="mt-5 text-[13px] font-medium text-[#7a7a7a]">
+                기사 {issueDocent.article_count}개 기반 · {formatIssueDocentDateTime(issueDocent.created_at)}
+              </p>
+            </header>
 
-          <section className="w-[760px] space-y-9 py-8">
-            {issueDocent.explanation.map((section) => (
-              <section key={`${section.section_type}-${section.title}`} className="space-y-5">
-                <h2 className="ko-title text-[24px] font-semibold text-[#1d1d1f]">
-                  {section.title}
-                </h2>
-                <div className="space-y-5">
-                  {section.paragraphs.map((paragraph, index) => (
-                    <ParagraphWithTerms
-                      key={`${section.section_type}-${index}`}
+            <section className="w-full space-y-9 py-8">
+              {issueDocent.explanation.map((section) => (
+                <section key={`${section.section_type}-${section.title}`} className="space-y-5">
+                  <h2 className="ko-title text-[24px] font-semibold text-[#1d1d1f]">
+                    {section.title}
+                  </h2>
+                  <div className="space-y-5">
+                    {section.paragraphs.map((paragraph, index) => (
+                      <ParagraphWithTerms
+                        key={`${section.section_type}-${index}`}
+                        onOpenTerm={setSelectedTerm}
+                        terms={paragraph.matched_terms}
+                        text={paragraph.text}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </section>
+
+            {analysisSections.length > 0 && (
+              <section className="w-full border-t border-[#e0e0e0] py-8">
+                <div className="grid gap-5">
+                  {analysisSections.map((section) => (
+                    <AnalysisCard
+                      key={section.title}
                       onOpenTerm={setSelectedTerm}
-                      terms={paragraph.matched_terms}
-                      text={paragraph.text}
+                      section={section}
+                      terms={glossaryTerms}
                     />
                   ))}
                 </div>
               </section>
-            ))}
-          </section>
+            )}
 
-          <section className="w-[760px] border-t border-[#e0e0e0] py-8">
-            <h2 className="text-[26px] font-semibold text-[#1d1d1f]">퀴즈</h2>
-            <p className="mt-2 text-[14px] text-[#7a7a7a]">보기를 누르면 바로 채점됩니다.</p>
-            <div className="mt-5 grid gap-4">
-              {issueDocent.quizzes.map((quiz) => (
-                <QuizCard key={quiz.quiz_id} quiz={quiz} />
-              ))}
-            </div>
-          </section>
-        </article>
+            <section className="w-full border-t border-[#e0e0e0] py-8">
+              <h2 className="text-[26px] font-semibold text-[#1d1d1f]">퀴즈</h2>
+              <p className="mt-2 text-[14px] text-[#7a7a7a]">보기를 누르면 바로 채점됩니다.</p>
+              <div className="mt-5 grid gap-4">
+                {issueDocent.quizzes.map((quiz) => (
+                  <QuizCard key={quiz.quiz_id} quiz={quiz} />
+                ))}
+              </div>
+            </section>
+          </article>
+
+          {sidebarContext && (
+            <SidebarCard
+              companies={sidebarContext.relatedCompanies}
+              markets={sidebarContext.relatedMarkets}
+              metrics={sidebarContext.keyMetrics}
+              onOpenTerm={setSelectedTerm}
+              terms={glossaryTerms}
+            />
+          )}
+        </div>
       </main>
 
       {showArticles && (
@@ -250,7 +564,9 @@ export function IssueDocentDetailClient({
 
       {selectedTerm && (
         <AppModal title={selectedTerm.term} onClose={() => setSelectedTerm(null)}>
-          <p className="text-[13px] font-semibold text-[#c96442]">{selectedTerm.category}</p>
+          {selectedTerm.category && (
+            <p className="text-[13px] font-semibold text-[#c96442]">{selectedTerm.category}</p>
+          )}
           <p className="ko-body mt-3 text-[16px] leading-7 text-[#1d1d1f]">
             {selectedTerm.definition}
           </p>
