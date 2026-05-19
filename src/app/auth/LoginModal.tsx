@@ -28,21 +28,6 @@ function GoogleIcon() {
   );
 }
 
-const FEATURES = [
-  {
-    title: "쉬운 말로 번역",
-    desc: "어려운 금융 뉴스를 주린이도 이해할 수 있게 풀어드려요",
-  },
-  {
-    title: "맞춤 이슈 큐레이션",
-    desc: "내 관심 섹터와 종목에 맞는 이슈를 먼저 보여드려요",
-  },
-  {
-    title: "용어 풀이 · 퀴즈",
-    desc: "낯선 금융 용어를 설명하고 퀴즈로 시장 감각을 키워드려요",
-  },
-];
-
 export function LoginModal({ onClose }: { onClose: () => void }) {
   const [isClosing, setIsClosing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,124 +49,44 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
       style={{ backgroundColor: "rgba(0,0,0,0.22)" }}
     >
       <section
-        className={`grid w-[860px] grid-cols-[320px_1fr] overflow-hidden rounded-2xl shadow-[0_24px_80px_rgba(100,60,30,0.13)] ${
+        className={`w-[400px] overflow-hidden rounded-[28px] bg-white shadow-[0_16px_64px_rgba(100,60,30,0.13)] ${
           isClosing
             ? "animate-out fade-out zoom-out-95 slide-out-to-bottom-4 duration-300 fill-mode-both"
             : "animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out fill-mode-both"
         }`}
       >
-        {/* ── 좌측: Warm White 패널 ── */}
-        <div
-          className="relative flex flex-col overflow-hidden border-r border-[#e8e2da] px-9 py-11"
-          style={{
-            backgroundColor: "#ffffff",
-            backgroundImage: "radial-gradient(circle, rgba(201,100,66,0.12) 1px, transparent 1px)",
-            backgroundSize: "18px 18px",
-          }}
-        >
-          {/* 도트 패턴 위 콘텐츠 가독성을 위한 흰색 마스크 Orb */}
-          <div
-            className="pointer-events-none absolute rounded-full"
-            style={{
-              width: 340, height: 340,
-              background: "radial-gradient(circle, rgba(255,255,255,0.92) 30%, transparent 70%)",
-              filter: "blur(8px)",
-              top: -60, left: -60,
-              zIndex: 1,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute rounded-full"
-            style={{
-              width: 220, height: 220,
-              background: "radial-gradient(circle, rgba(255,255,255,0.85) 30%, transparent 70%)",
-              filter: "blur(8px)",
-              bottom: -40, right: -30,
-              zIndex: 1,
-            }}
-          />
+        <div className="px-10 py-11">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#c96442]">
+            장독대
+          </p>
+          <h2 className="mb-2.5 text-[26px] font-bold leading-[1.2] tracking-[-0.03em] text-[#1d1d1f]">
+            시장 독해를<br />대신 해드립니다
+          </h2>
+          <p className="mb-8 text-[13px] leading-[1.65] text-[#7a7a7a]">
+            AI가 주린이를 위해<br />어려운 금융 뉴스를 쉽게 풀어드려요
+          </p>
 
-          {/* 콘텐츠 */}
-          <div className="relative flex flex-col" style={{ zIndex: 2 }}>
-            <p className="mb-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c96442]">
-              로그인
-            </p>
-            <h2 className="mb-3 whitespace-nowrap text-[22px] font-extrabold leading-[1.18] tracking-[-0.03em] text-[#1d1d1f]">
-              시장 독해를 대신 해드립니다
-            </h2>
-            <p className="mb-7 text-[13px] leading-[1.72] text-[rgba(28,17,9,0.45)]">
-              주린이를 위한<br />AI 주식 뉴스 큐레이션 서비스
-            </p>
-
-            <div className="mb-5 border-t border-[#e8e2da]" />
-
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9a9a9a]">
-              서비스 특징
-            </p>
-            <ul className="flex flex-col gap-3">
-              {FEATURES.map((f) => (
-                <li key={f.title} className="flex items-start gap-2.5">
-                  <span
-                    className="mt-[5px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#c96442] opacity-70"
-                    aria-hidden="true"
-                  />
-                  <span className="text-[13px] leading-[1.55] text-[#5a5a5a]">
-                    <strong className="block font-semibold text-[#1d1d1f]">{f.title}</strong>
-                    {f.desc}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col gap-2.5">
+            <a
+              href={`${API_V1_BASE}/auth/kakao/login`}
+              className="flex h-[52px] w-full items-center justify-center gap-3 rounded-full bg-[#FEE500] text-[15px] font-semibold text-[#191919] transition hover:bg-[#f5db00] active:scale-[0.97]"
+            >
+              <KakaoIcon />
+              카카오로 시작하기
+            </a>
+            <a
+              href={`${API_V1_BASE}/auth/google/login`}
+              className="flex h-[52px] w-full items-center justify-center gap-3 rounded-full border border-[#e8e2da] bg-white text-[15px] font-semibold text-[#1d1d1f] transition hover:bg-[#f9f6f3] active:scale-[0.97]"
+            >
+              <GoogleIcon />
+              구글로 시작하기
+            </a>
           </div>
-        </div>
 
-        {/* ── 우측: 로그인 패널 ── */}
-        <div className="relative flex flex-col justify-center overflow-hidden bg-[#ffffff] px-10 py-11">
-          {/* 색상 Orb */}
-          <div
-            className="pointer-events-none absolute rounded-full"
-            style={{
-              width: 300, height: 300,
-              background: "radial-gradient(circle, rgba(201,100,66,0.07) 0%, transparent 70%)",
-              filter: "blur(60px)",
-              bottom: -80, right: -60,
-              animation: "orb-drift-reverse 14s ease-in-out infinite",
-            }}
-          />
-
-          <div className="relative" style={{ zIndex: 1, maxWidth: 320 }}>
-            <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#c96442]">
-              소셜 로그인
-            </p>
-            <h2 className="mb-2 text-[28px] font-bold leading-[1.2] tracking-[-0.03em] text-[#1d1d1f]">
-              장독대에<br />로그인
-            </h2>
-            <p className="mb-8 text-[14px] leading-[1.65] text-[#7a7a7a]">
-              주식 뉴스를 내 관심에 맞게<br />읽어보세요.
-            </p>
-
-            <div className="flex flex-col gap-2.5">
-              <a
-                href={`${API_V1_BASE}/auth/kakao/login`}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-full bg-[#FEE500] text-[15px] font-semibold text-[#191919] transition hover:bg-[#f5db00] active:scale-[0.97]"
-              >
-                <KakaoIcon />
-                카카오로 시작하기
-              </a>
-              <a
-                href={`${API_V1_BASE}/auth/google/login`}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#e8e2da] bg-white text-[15px] font-semibold text-[#1d1d1f] transition hover:bg-[#f9f6f3] active:scale-[0.97]"
-              >
-                <GoogleIcon />
-                구글로 시작하기
-              </a>
-            </div>
-
-            <p className="mt-5 text-center text-[11px] leading-[1.6] text-[#b0a89e]">
-              로그인 시{" "}
-              <strong className="font-semibold text-[#7a7a7a]">이용약관</strong>에 동의한 것으로 간주됩니다.
-            </p>
-          </div>
+          <p className="mt-5 text-center text-[10.5px] leading-[1.6] text-[#b0a89e]">
+            로그인 시{" "}
+            <strong className="font-semibold text-[#7a7a7a]">이용약관</strong>에 동의한 것으로 간주됩니다.
+          </p>
         </div>
       </section>
     </Modal>

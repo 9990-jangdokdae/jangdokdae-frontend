@@ -158,13 +158,16 @@ export function OnboardingModal({
                 profile.sectors.map((id, i) => {
                   const option = sectorOptions.find((o) => o.id === id);
                   return (
-                    <span
+                    <button
                       key={id}
-                      className="animate-in fade-in zoom-in-90 inline-flex items-center gap-1 rounded-full border border-[#c96442] bg-[#fff1ec] px-3 py-1 text-[12px] font-semibold text-[#c96442] fill-mode-both"
+                      type="button"
+                      onClick={() => onChange({ ...profile, sectors: toggleItem(profile.sectors, id) })}
+                      className="animate-in fade-in zoom-in-90 group inline-flex items-center gap-1 rounded-full border border-[#c96442] bg-[#fff1ec] px-3 py-1 text-[12px] font-semibold text-[#c96442] fill-mode-both transition-colors hover:border-[#e05a3a] hover:bg-[#ffe4dc]"
                       style={{ animationDelay: `${i * 35}ms` }}
                     >
                       {option?.icon} {option?.label ?? id}
-                    </span>
+                      <span className="ml-0.5 opacity-40 transition-opacity group-hover:opacity-100" aria-hidden="true">✕</span>
+                    </button>
                   );
                 })
               )}
@@ -182,13 +185,16 @@ export function OnboardingModal({
                 profile.companies.map((id, i) => {
                   const label = companyOptions.find((o) => o.id === id)?.label ?? id;
                   return (
-                    <span
+                    <button
                       key={id}
-                      className="animate-in fade-in zoom-in-90 inline-flex items-center rounded-full border border-[#c96442] bg-[#fff1ec] px-3 py-1 text-[12px] font-semibold text-[#c96442] fill-mode-both"
+                      type="button"
+                      onClick={() => onChange({ ...profile, companies: toggleItem(profile.companies, id) })}
+                      className="animate-in fade-in zoom-in-90 group inline-flex items-center gap-1 rounded-full border border-[#c96442] bg-[#fff1ec] px-3 py-1 text-[12px] font-semibold text-[#c96442] fill-mode-both transition-colors hover:border-[#e05a3a] hover:bg-[#ffe4dc]"
                       style={{ animationDelay: `${i * 35}ms` }}
                     >
                       {label}
-                    </span>
+                      <span className="ml-0.5 opacity-40 transition-opacity group-hover:opacity-100" aria-hidden="true">✕</span>
+                    </button>
                   );
                 })
               )}
