@@ -36,12 +36,19 @@ export interface IssueDocentDetailResponse {
   sector_companies: SectorCompanies[];
   article_count: number;
   summary: SummaryContent;
+  explanation?: ExplanationSection[];
   articles: SourceArticle[];
   quizzes: IssueDocentQuiz[];
   created_at: string;
 }
 
 export interface SummaryContent {
+  paragraphs: SummaryParagraph[];
+}
+
+export interface ExplanationSection {
+  section_type: string;
+  title: string;
   paragraphs: SummaryParagraph[];
 }
 
