@@ -23,6 +23,7 @@ import type {
   IssueDocentDetailResponse,
   IssueDocentQuiz,
   MatchedTerm,
+  ExplanationSection,
 } from "@/types/issueDocent";
 
 interface TermDefinition {
@@ -322,15 +323,20 @@ function SidebarCard({
   onOpenTerm: (term: TermDefinition) => void;
 }) {
   return (
-    <aside className="sticky top-24 w-[410px] self-start">
-      <div className="space-y-3 rounded-lg border border-[#e0e0e0] bg-white px-4 py-4">
-        <section>
+    <aside className="sticky top-24 self-start xl:w-[380px]">
+      <div className="space-y-3">
+        {companies.length > 0 && (
           <div className="grid gap-2.5">
-            {companies.map((company) => <RelatedCompanyItem key={`${company.name}-${company.ticker ?? ""}`} company={company} />)}
+            {companies.map((company) => (
+              <RelatedCompanyItem
+                key={`${company.name}-${company.ticker ?? ""}`}
+                company={company}
+              />
+            ))}
           </div>
-        </section>
+        )}
 
-        <section className="border-t border-[#eef1f5] pt-3.5">
+        {markets.length > 0 && (
           <div className="grid gap-2.5">
             {markets.map((market) => (
               <MarketItem
@@ -341,9 +347,9 @@ function SidebarCard({
               />
             ))}
           </div>
-        </section>
+        )}
 
-        <section className="border-t border-[#eef1f5] pt-3.5">
+        {metrics.length > 0 && (
           <div className="grid gap-2.5">
             {metrics.map((metric) => (
               <MetricItem
@@ -354,7 +360,7 @@ function SidebarCard({
               />
             ))}
           </div>
-        </section>
+        )}
       </div>
     </aside>
   );
@@ -373,16 +379,33 @@ export function IssueDocentDetailClient({
     analysisSections: [],
     sidebarContext: null,
   });
-  const analysisSections =
-    analyzerState.clusterId === analyzerClusterId ? analyzerState.analysisSections : [];
-  const sidebarContext =
-    analyzerState.clusterId === analyzerClusterId ? analyzerState.sidebarContext : null;
+  const analysisSections = useMemo(
+    () => (analyzerState.clusterId === analyzerClusterId ? analyzerState.analysisSections : []),
+    [analyzerClusterId, analyzerState.analysisSections, analyzerState.clusterId],
+  );
+  const sidebarContext = useMemo(
+    () => (analyzerState.clusterId === analyzerClusterId ? analyzerState.sidebarContext : null),
+    [analyzerClusterId, analyzerState.clusterId, analyzerState.sidebarContext],
+  );
+
+  const summaryParagraphs = useMemo(() => {
+    if ((issueDocent.summary?.paragraphs?.length ?? 0) > 0) {
+      return issueDocent.summary.paragraphs;
+    }
+
+    const explanationSections = issueDocent.explanation ?? [];
+    if (explanationSections.length > 0) {
+      return explanationSections.flatMap((section: ExplanationSection) => section.paragraphs ?? []);
+    }
+
+    return [];
+  }, [issueDocent.explanation, issueDocent.summary]);
 
   const glossaryTerms = useMemo<TermDefinition[]>(() => {
     const seen = new Set<string>();
     const terms: TermDefinition[] = [];
 
-    for (const paragraph of issueDocent.summary.paragraphs) {
+    for (const paragraph of summaryParagraphs) {
       for (const term of paragraph.matched_terms ?? []) {
         const key = `${term.term}::${term.definition}`;
         if (seen.has(key)) continue;
@@ -396,7 +419,7 @@ export function IssueDocentDetailClient({
     }
 
     return terms;
-  }, [issueDocent.summary.paragraphs]);
+  }, [summaryParagraphs]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -443,13 +466,13 @@ export function IssueDocentDetailClient({
   }, [analyzerClusterId]);
 
   return (
-    <div className="min-h-screen min-w-[1376px] bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-white text-[#1d1d1f]">
       <Header activeIndex={1} />
       <InterestRail />
 
-      <main className="mx-[100px] w-[1220px] bg-white pb-24 pt-8">
-        <div className="flex items-start gap-10">
-          <article className="w-[770px]">
+      <main className="mx-auto max-w-[1280px] bg-white px-6 pb-24 pt-8 lg:px-8">
+        <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <article className="min-w-0 xl:max-w-[770px]">
             <header className="border-b border-[#e0e0e0] pb-8">
               <p className="flex items-center gap-2 text-[14px] font-semibold text-[#c96442]">
                 <BookOpenCheck className="h-4 w-4" />
@@ -474,7 +497,7 @@ export function IssueDocentDetailClient({
             </header>
 
             <section className="w-full space-y-5 py-8">
-              {issueDocent.summary.paragraphs.map((paragraph, index) => (
+              {summaryParagraphs.map((paragraph, index) => (
                 <ParagraphWithTerms
                   key={`${paragraph.text}-${index}`}
                   onOpenTerm={setSelectedTerm}
